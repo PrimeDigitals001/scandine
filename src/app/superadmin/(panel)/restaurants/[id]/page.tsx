@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 import { AddTablesForm } from "./AddTablesForm";
 import { CreateAdminForm } from "./CreateAdminForm";
+import { AdminsList } from "./AdminsList";
 import { CopyButton } from "./CopyButton";
 
 export const metadata: Metadata = { title: "Super Admin · Café" };
@@ -205,26 +206,7 @@ export default async function RestaurantDetailPage({
         </h2>
 
         {admins.length > 0 && (
-          <ul className="flex flex-col gap-1.5">
-            {admins.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-center justify-between gap-2 rounded-control border border-hairline bg-canvas/50 px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-ink">
-                    {a.email ?? "—"}
-                  </p>
-                  {a.full_name && (
-                    <p className="truncate text-xs text-muted">{a.full_name}</p>
-                  )}
-                </div>
-                <Badge tone={a.is_active ? "success" : "neutral"}>
-                  {a.is_active ? "active" : "disabled"}
-                </Badge>
-              </li>
-            ))}
-          </ul>
+          <AdminsList admins={admins} restaurantId={restaurant.id} />
         )}
 
         <div className="border-t border-hairline pt-4">

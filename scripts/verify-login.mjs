@@ -12,8 +12,9 @@ for (const l of readFileSync(".env.local", "utf8").split("\n")) {
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, "");
 }
 
-const BASE = "http://localhost:3000";
+const BASE = process.env.BASE ?? "http://localhost:3000";
 const SUPER_EMAIL = process.env.SUPER_ADMIN_EMAIL;
+const SUPER_PW = process.env.SUPER_PW ?? "12345678";
 let pass = 0;
 let fail = 0;
 const ok = (n, c, d = "") => {
@@ -55,7 +56,7 @@ try {
   await page.close();
 
   // operator → /superadmin
-  page = await login(SUPER_EMAIL, "12345678");
+  page = await login(SUPER_EMAIL, SUPER_PW);
   routed = false;
   try {
     await page.waitForURL("**/superadmin/**", { timeout: 15000 });

@@ -378,6 +378,23 @@ When you finish a session, leave the repo runnable and note what's next at the b
 
 **Deferred (not blocking a pilot):** admin table/QR management (super-admin does onboarding), order history page, staff management page, analytics, menu photo upload (Supabase Storage), customer rating storage RPC. Step 7+ when pilot feedback warrants.
 
+### Session 7 — Unified login, admin mobile nav, GitHub push ✅
+- **Common `/login`** (`src/app/login/`): one form → `unifiedLogin` server action routes by identity (operator email → super admin JWT; Supabase `role=admin` → `/admin`; `role=staff` → that café's `/kitchen/[slug]`). Deleted the 3 per-role login routes; proxy + all layouts/logouts now redirect to `/login`. Verified `verify-login.mjs` 4/4 (3 roles + bad password).
+- **Admin mobile nav** is now an **animated hamburger** (`AdminTopBar`, replaces the scroll bar `AdminNav`): morphing burger→X, slide-down drawer, closes on nav. Inline pills on `sm+`. `verify-admin-nav.mjs` 5/5.
+- **Repo:** git initialised (identity = PrimeDigitals per §12 reversal), committed, pushed to **`https://github.com/PrimeDigitals001/scandine.git`** `main`. `.env.local` confirmed git-ignored (no secrets pushed).
+- **No regressions:** login 4/4, customer 14/14, kitchen 8/8, admin 11/11, menu 5/5, nav 5/5.
+
+### Session 8 — Deployed to Vercel + full credential lifecycle ✅
+- **DEPLOYED:** live at **https://scandine-demo.vercel.app** (Vercel, auto-deploys from `main`). Env vars set in Vercel incl. the **strong** super-admin password (`SD-fqY8GeDb-09c0`; `12345678` is local-only). Verified against the live URL: customer 14/14, login 4/4 with strong password, weak password rejected. **Still pending:** set `NEXT_PUBLIC_APP_URL=https://scandine-demo.vercel.app` in Vercel + redeploy so QR codes encode the live URL (until then QRs fall back to localhost; direct URLs work).
+- **Credential lifecycle (was the missing half):**
+  - **Owner → Staff page** (`/admin/staff`, `StaffManager`): create kitchen logins (one-time temp password shown), reset a staff password, enable/disable, remove. Actions verify admin via `getAdminContext` then use the **service role** scoped to the caller's restaurant. Nav gained "Staff".
+  - **Owner self-service:** "Change your password" card in `/admin/settings` (`changeOwnPasswordAction` → `supabase.auth.updateUser`).
+  - **Super admin → reset owner password:** `AdminsList` on the restaurant detail (`resetAdminPasswordAction`, one-time temp password).
+  - **`is_active` now enforced at login** (`unifiedLogin` rejects disabled accounts).
+- **Verified:** build green, lint clean, `verify-admin-staff.mjs` 7/7 (create→login→reset→new-works/old-fails→disabled-blocked→settings). No regressions (login/nav/admin/customer all green). NOTE: the shared Supabase means live testers' data (e.g. a stray table T7 order) shows up locally — clear stray non-cleared orders if a `.first()`-based test trips.
+
+**Next — founder-driven:** set `NEXT_PUBLIC_APP_URL` in Vercel + redeploy + regenerate QRs. Then the real bottleneck is sales: demo to a café. Deferred features (order history, analytics, menu photos, staff self password-change, in-app rating storage) await pilot feedback.
+
 ---
 
 *End of CLAUDE.md — ScanDine. Vision: CONTEXT.md. This file: how we build it.*

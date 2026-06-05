@@ -55,12 +55,16 @@ export async function unifiedLogin(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, restaurant_id")
+    .select("role, restaurant_id, is_active")
     .eq("id", user.id)
     .maybeSingle();
   if (!profile?.restaurant_id) {
     await supabase.auth.signOut();
     return { error: "This account isn't linked to a café yet." };
+  }
+  if (profile.is_active === false) {
+    await supabase.auth.signOut();
+    return { error: "This account has been disabled. Contact your café admin." };
   }
 
   if (profile.role === "admin") redirect("/admin/dashboard");

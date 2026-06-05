@@ -2,7 +2,9 @@
 export interface ActionState {
   error?: string;
   ok?: boolean;
-  // create-admin success payload (shown once):
+  // create-admin / reset success payload (shown once):
   createdEmail?: string;
   tempPassword?: string;
+  // which admin row a reset belongs to:
+  resetUserId?: string;
 }

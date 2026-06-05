@@ -248,3 +248,22 @@ export async function createAdminAccount(
   revalidatePath(`/superadmin/restaurants/${restaurantId}`);
   return { ok: true, createdEmail: parsed.data.email, tempPassword };
 }
+
+export async function resetAdminPasswordAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireSuperAdmin();
+  const userId = String(formData.get("user_id"));
+  const restaurantId = String(formData.get("restaurant_id"));
+
+  const admin = createAdminClient();
+  const newPassword = `Cafe-${randomBytes(4).toString("hex")}`;
+  const { error } = await admin.auth.admin.updateUserById(userId, {
+    password: newPassword,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/superadmin/restaurants/${restaurantId}`);
+  return { ok: true, tempPassword: newPassword, resetUserId: userId };
+}

@@ -1,10 +1,23 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminContext } from "./context";
 import type { ActionState } from "./types";
+
+// Privileged credential work needs the service role, but only AFTER we confirm
+// the caller is an admin of a specific restaurant (then we scope writes to it).
+async function requireAdmin() {
+  const ctx = await getAdminContext();
+  if (!ctx || ctx.role !== "admin") throw new Error("Unauthorized");
+  return ctx;
+}
+
+const tempPassword = () => `Cafe-${randomBytes(4).toString("hex")}`;
 
 const opt = (v: FormDataEntryValue | null): string | null => {
   const s = String(v ?? "").trim();
@@ -182,5 +195,118 @@ export async function updateSettingsAction(
     .eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/admin/settings");
+  return { ok: true };
+}
+
+// ---- staff (kitchen) credentials -------------------------------------------
+
+const staffSchema = z.object({
+  email: z.string().trim().email("Enter a valid email."),
+  full_name: z.string().trim().max(120).optional(),
+});
+
+export async function createStaffAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const ctx = await requireAdmin();
+  const parsed = staffSchema.safeParse({
+    email: formData.get("email"),
+    full_name: opt(formData.get("full_name")) ?? undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const svc = createAdminClient();
+  const pw = tempPassword();
+  const { data: created, error: cErr } = await svc.auth.admin.createUser({
+    email: parsed.data.email,
+    password: pw,
+    email_confirm: true,
+    user_metadata: { full_name: parsed.data.full_name ?? null },
+  });
+  if (cErr || !created.user) {
+    return { error: cErr?.message ?? "Could not create the login." };
+  }
+  const { error: pErr } = await svc.from("profiles").insert({
+    id: created.user.id,
+    restaurant_id: ctx.restaurantId,
+    role: "staff",
+    full_name: parsed.data.full_name ?? null,
+  });
+  if (pErr) {
+    await svc.auth.admin.deleteUser(created.user.id);
+    return { error: pErr.message };
+  }
+  revalidatePath("/admin/staff");
+  return { ok: true, createdEmail: parsed.data.email, tempPassword: pw };
+}
+
+export async function resetStaffPasswordAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const ctx = await requireAdmin();
+  const staffId = String(formData.get("staff_id"));
+  const svc = createAdminClient();
+  const { data: prof } = await svc
+    .from("profiles")
+    .select("restaurant_id")
+    .eq("id", staffId)
+    .maybeSingle();
+  if (!prof || prof.restaurant_id !== ctx.restaurantId) {
+    return { error: "That staff member isn't on your team." };
+  }
+  const pw = tempPassword();
+  const { error } = await svc.auth.admin.updateUserById(staffId, { password: pw });
+  if (error) return { error: error.message };
+  revalidatePath("/admin/staff");
+  return { ok: true, tempPassword: pw, resetStaffId: staffId };
+}
+
+export async function setStaffActiveAction(formData: FormData): Promise<void> {
+  const ctx = await requireAdmin();
+  const staffId = String(formData.get("staff_id"));
+  const active = formData.get("active") === "true";
+  const svc = createAdminClient();
+  const { data: prof } = await svc
+    .from("profiles")
+    .select("restaurant_id")
+    .eq("id", staffId)
+    .maybeSingle();
+  if (prof?.restaurant_id !== ctx.restaurantId) return;
+  await svc.from("profiles").update({ is_active: active }).eq("id", staffId);
+  revalidatePath("/admin/staff");
+}
+
+export async function deleteStaffAction(formData: FormData): Promise<void> {
+  const ctx = await requireAdmin();
+  const staffId = String(formData.get("staff_id"));
+  const svc = createAdminClient();
+  const { data: prof } = await svc
+    .from("profiles")
+    .select("restaurant_id")
+    .eq("id", staffId)
+    .maybeSingle();
+  if (prof?.restaurant_id !== ctx.restaurantId) return;
+  await svc.auth.admin.deleteUser(staffId); // profile row cascades on delete
+  revalidatePath("/admin/staff");
+}
+
+// ---- change own password ---------------------------------------------------
+
+export async function changeOwnPasswordAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdmin();
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 6) {
+    return { error: "Password must be at least 6 characters." };
+  }
+  const supabase = await createClient(); // acts as the logged-in admin
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: error.message };
   return { ok: true };
 }

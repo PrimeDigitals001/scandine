@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { OrderStatus } from "@/lib/orderStatus";
 
 // All reads use the cookie-bound server client → RLS scopes to the admin's
@@ -165,4 +166,35 @@ export async function getMenu(): Promise<{
       .order("sort_order"),
   ]);
   return { categories: cats.data ?? [], items: items.data ?? [] };
+}
+
+export interface StaffMember {
+  id: string;
+  full_name: string | null;
+  is_active: boolean;
+  email: string | null;
+}
+
+// Emails live in auth.users → needs the service role. Call only after the page
+// has confirmed an admin via getAdminContext, and pass that restaurantId.
+export async function getStaff(restaurantId: string): Promise<StaffMember[]> {
+  const svc = createAdminClient();
+  const { data: profiles } = await svc
+    .from("profiles")
+    .select("id, full_name, is_active, created_at")
+    .eq("restaurant_id", restaurantId)
+    .eq("role", "staff")
+    .order("created_at", { ascending: true });
+
+  return Promise.all(
+    (profiles ?? []).map(async (p: { id: string; full_name: string | null; is_active: boolean }) => {
+      const { data } = await svc.auth.admin.getUserById(p.id);
+      return {
+        id: p.id,
+        full_name: p.full_name,
+        is_active: p.is_active,
+        email: data.user?.email ?? null,
+      };
+    }),
+  );
 }
