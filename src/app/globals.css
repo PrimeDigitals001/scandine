@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+/*
+  ScanDine design tokens — "warm + rounded + soft-shadowed + photography-forward
+  + orange-primary + green-for-money." Light-first. Mobile-first.
+  Brand anchor: #E85D26 (brand-500). See CLAUDE.md §4.
+
+  Tailwind v4 is CSS-first: every token below auto-generates utilities
+  (--color-* → bg-/text-/border-, --radius-* → rounded-*, --shadow-* → shadow-*,
+   --animate-* → animate-*). There is no tailwind.config.js.
+*/
+
+@theme {
+  /* ---- Type ---------------------------------------------------------- */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+
+  /* ---- Brand orange (anchor = #E85D26 @ 500) ------------------------- */
+  --color-brand-50: #fff4ef;
+  --color-brand-100: #ffe6d9;
+  --color-brand-200: #fcc9b0;
+  --color-brand-300: #f8a382;
+  --color-brand-400: #f17e53;
+  --color-brand-500: #e85d26; /* PRIMARY */
+  --color-brand-600: #d24e1b; /* hover  */
+  --color-brand-700: #ae3f16; /* pressed */
+  --color-brand-800: #8a3215;
+  --color-brand-900: #6f2a16;
+  --color-brand-950: #3b1208;
+
+  /* ---- Surfaces & ink (warm neutrals) -------------------------------- */
+  --color-canvas: #f7f5f2; /* app background  */
+  --color-surface: #ffffff; /* cards           */
+  --color-surface-sunken: #f2efea; /* insets, tracks  */
+  --color-ink: #1c1917; /* primary text + near-black CTAs */
+  --color-ink-soft: #44403c; /* strong secondary text */
+  --color-muted: #78716c; /* secondary text  */
+  --color-faint: #a8a29e; /* tertiary / placeholders */
+  --color-hairline: #e7e5e4; /* borders         */
+
+  /* ---- Money & semantics --------------------------------------------- */
+  --color-success: #15a34a; /* prices, totals, READY, veg */
+  --color-success-strong: #128a3e; /* success text on light  */
+  --color-success-soft: #e7f6ec; /* success tint           */
+  --color-danger: #e5484d; /* discounts, destructive, errors */
+  --color-danger-strong: #c5343a;
+  --color-danger-soft: #fdecec;
+  --color-warning: #f59e0b;
+  --color-warning-strong: #b4730b;
+  --color-warning-soft: #fef3e0;
+  --color-info: #2563eb;
+  --color-info-soft: #e7eefe;
+
+  /* FSSAI veg / non-veg dots */
+  --color-veg: #15a34a;
+  --color-nonveg: #92400e;
+
+  /* ---- Order-status colour map (timeline + KDS chips) ---------------- */
+  --color-status-placed: #78716c; /* stone   */
+  --color-status-accepted: #2563eb; /* blue    */
+  --color-status-cooking: #f59e0b; /* amber   */
+  --color-status-ready: #15a34a; /* green   */
+  --color-status-served: #e85d26; /* brand   */
+  --color-status-billed: #7c3aed; /* violet  */
+  --color-status-cleared: #a8a29e; /* stone-400 */
+
+  /* ---- Shape --------------------------------------------------------- */
+  --radius-control: 14px;
+  --radius-card: 20px;
+  --radius-pill: 9999px;
+
+  /* ---- Shadow (warm, layered) ---------------------------------------- */
+  --shadow-card: 0 1px 2px rgba(17, 12, 8, 0.04),
+    0 6px 20px rgba(17, 12, 8, 0.06);
+  --shadow-pop: 0 2px 4px rgba(17, 12, 8, 0.05),
+    0 12px 32px rgba(17, 12, 8, 0.1);
+  --shadow-sticky: 0 -4px 24px rgba(17, 12, 8, 0.08);
+  --shadow-focus: 0 0 0 3px rgba(232, 93, 38, 0.35);
+
+  /* ---- Motion — the "alive" toolkit ---------------------------------- */
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-slide-up: slide-up 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-bump: bump 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-pulse-ring: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-fade-in: fade-in 0.2s ease-out;
+}
+
+/* ---- Keyframes ------------------------------------------------------- */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes bump {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.28);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(232, 93, 38, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(232, 93, 38, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 93, 38, 0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---- Base ------------------------------------------------------------ */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    /* iOS rubber-band stays on-brand instead of white */
+    overscroll-behavior-y: none;
+  }
+
+  /* Keyboard focus is always visible & on-brand; pointer focus is not. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Money & quantities read as a register, never ragged. */
+  .tnum {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Honour the OS "reduce motion" pledge everywhere. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Shimmer surface used by <Skeleton/> */
+@utility skeleton {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-surface-sunken) 30%,
+    #ffffff 50%,
+    var(--color-surface-sunken) 70%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
