@@ -137,13 +137,14 @@ create table public.orders (
   id             uuid primary key default gen_random_uuid(),
   restaurant_id  uuid not null references public.restaurants (id) on delete cascade,
   table_id       uuid not null references public.tables (id) on delete cascade,
-  status         public.order_status not null default 'placed',
-  table_note     text,
-  placed_at      timestamptz not null default now(),
-  served_at      timestamptz,
-  billed_at      timestamptz,
-  created_at     timestamptz not null default now(),
-  updated_at     timestamptz not null default now()
+  status            public.order_status not null default 'placed',
+  table_note        text,
+  placed_at         timestamptz not null default now(),
+  served_at         timestamptz,
+  billed_at         timestamptz,
+  bill_requested_at timestamptz,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
 );
 create index orders_restaurant_id_idx on public.orders (restaurant_id);
 create index orders_table_id_idx      on public.orders (table_id);
@@ -789,6 +790,9 @@ begin
   end if;
 
   update public.tables set status = 'billing' where id = v_table.id;
+  -- stamp the order so the owner's live screen can alert on it (orders is
+  -- anon-readable, so its realtime stream reaches the admin reliably).
+  update public.orders set bill_requested_at = now() where id = v_order.id;
 end;
 $$;
 
@@ -926,11 +930,11 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_caller    uuid := public.auth_restaurant_id();
-  v_role      public.user_role := public.auth_role();
-  v_order     public.orders;
-  v_bill      public.bills;
-  v_new_token text;
+  v_caller uuid := public.auth_restaurant_id();
+  v_role   public.user_role := public.auth_role();
+  v_order  public.orders;
+  v_bill   public.bills;
+  v_token  text;
 begin
   if v_caller is null or v_role <> 'admin' then
     raise exception 'Only an admin can clear a table' using errcode = '42501';
@@ -952,13 +956,13 @@ begin
     raise exception 'Confirm payment before clearing the table' using errcode = 'P0001';
   end if;
 
-  v_new_token := public.new_qr_token();
+  -- Free the table for the next guest, but keep the qr_token STABLE so a
+  -- printed sticker keeps working forever (one sticker per table, reused).
   update public.orders set status = 'cleared' where id = p_order_id;
-  update public.tables
-    set status = 'empty', qr_token = v_new_token
-  where id = v_order.table_id;
+  update public.tables set status = 'empty' where id = v_order.table_id;
 
-  return v_new_token;
+  select t.qr_token into v_token from public.tables t where t.id = v_order.table_id;
+  return v_token;
 end;
 $$;
 

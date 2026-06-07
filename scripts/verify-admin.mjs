@@ -90,11 +90,12 @@ try {
   await page.getByText("No open tables").waitFor({ timeout: 10000 });
   ok("clear table → billing is empty", true);
 
-  // DB: order cleared + qr_token regenerated
+  // DB: order cleared + qr_token STAYS STABLE (printed sticker keeps working).
+  // (This assertion needs the 005_stable_qr_token migration applied.)
   const { data: o } = await admin.from("orders").select("status").eq("id", orderId).single();
   const { data: t1 } = await admin.from("tables").select("qr_token, status").eq("id", t0.id).single();
   ok("order is 'cleared'", o.status === "cleared", o.status);
-  ok("qr_token regenerated (old session dies)", t1.qr_token !== "demo", t1.qr_token?.slice(0, 8));
+  ok("qr_token stays stable (sticker keeps working)", t1.qr_token === "demo", t1.qr_token);
   ok("table reset to 'empty'", t1.status === "empty");
 
   ok("no console/page errors", errors.length === 0, errors.slice(0, 2).join(" | "));

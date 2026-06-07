@@ -3,6 +3,7 @@ import { getAdminContext } from "@/lib/admin/context";
 import { signOutAction } from "@/lib/admin/actions";
 import { Button } from "@/components/ui/Button";
 import { AdminTopBar } from "./AdminTopBar";
+import { AdminLive } from "./AdminLive";
 
 export default async function AdminAppLayout({
   children,
@@ -37,6 +38,7 @@ export default async function AdminAppLayout({
   return (
     <div className="min-h-dvh bg-canvas">
       <AdminTopBar restaurantName={ctx.restaurant.name} signOut={signOutAction} />
+      <AdminLive restaurantId={ctx.restaurantId} />
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         {children}
       </main>

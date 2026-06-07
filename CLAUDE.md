@@ -173,7 +173,7 @@ Follows CONTEXT.md §16, adapted to the consolidated architecture. Each step sho
 4. **Customer PWA** — QR resolve → menu → customise → cart → place order → live status tracker. The heart of the product; make it beautiful (§4).
 5. **Kitchen Display System** — live order queue, accept→cooking→ready, audio alert, per-item status.
 6. **Admin Dashboard** — floor view, menu builder (with image upload), table/QR management, order history.
-7. **Billing module** — auto-generate bill, GST (SGST 2.5% + CGST 2.5% on subtotal), payment record, **table clear → regenerate qr_token**.
+7. **Billing module** — auto-generate bill, GST (SGST 2.5% + CGST 2.5% on subtotal), payment record, **table clear** (frees the table; `qr_token` stays stable — it's a printed sticker).
 8. **Google rating tab** — fire on status=SERVED, deep-link to the restaurant's Google review URL; second prompt at "Request Bill".
 9. **Analytics** — read-only queries (daily revenue, top items, peak hours, AOV, table turnover).
 10. **Tier 2** — only after pilot feedback (see CONTEXT.md §4).
@@ -238,7 +238,7 @@ Supabase client helpers to create in `src/lib/supabase/`:
 - Items can be added to an active order **before READY**.
 - An item toggled unavailable hides from **new** orders but stays on existing active ones.
 - Bill = sum of `order_items.unit_price × qty`; **SGST = subtotal × 0.025, CGST = subtotal × 0.025** (rates from `restaurants.tax_config`).
-- Table is cleared **only after payment is confirmed** (admin action) → **regenerate `qr_token`** so old sessions die.
+- Table is cleared **only after payment is confirmed** (admin action). The **`qr_token` stays STABLE** (it's a printed sticker — must work for every guest, forever). A stale phone just starts a fresh order on the now-empty table; the "one active order per table" rule keeps that clean. *(Earlier the token regenerated on clear — that broke printed stickers and was reverted in migration `005_stable_qr_token`.)*
 - Rating prompt fires **max once per order**.
 - Status machine: `placed → accepted → cooking → ready → served → billed → cleared`. Every transition is an `orders.status` UPDATE that Realtime broadcasts.
 
@@ -410,7 +410,14 @@ Founder reviewed and flagged a batch of polish + two real gaps:
 - **Real bug fixed:** `itemSchema.category_id` was `z.string().uuid()`, but seeded category ids (`22222222-0000-…`) aren't strict RFC-4122 UUIDs → **zod 4 rejected them, so editing any seeded item silently failed** with "Pick a category." Relaxed to `z.string().min(1)` (the `menu_items→menu_categories` FK is the real guard).
 - **Verified:** build green, lint clean. login 4/4, nav 5/5, **staff 9/9** (incl. manual password), **image 5/5** (upload→Storage→public URL→customer renders), tables 6/6, menu 5/5, customer-ui both engines. New scripts: `setup-storage.mjs`, `verify-admin-image.mjs`.
 
-**Next — founder-driven:** set `NEXT_PUBLIC_APP_URL` in Vercel + redeploy + regenerate QRs. Then the real bottleneck is sales: demo to a café. Deferred features (order history, analytics, staff self password-change, in-app rating storage) await pilot feedback.
+### Session 11 — Stable QR token, live floor, staff reset editor, per-table seats ✅
+- **Stable QR token (the big one):** founder spotted that `clear_table` regenerated `qr_token` on every clear — which **breaks a printed sticker**. Reverted: `clear_table` now frees the table but keeps the token constant (migration `005_stable_qr_token`). One sticker per table, forever. Security ("old session dies") is handled by the cleared-order/empty-table reset instead.
+- **Live owner floor / "request bill" alert:** `AdminLive` (mounted in the admin `(app)/layout`) subscribes to this restaurant's **`orders`** stream (anon-readable → realtime is reliable, unlike `tables`/`bills`) and `router.refresh()`es the Floor/Billing on any change; pops a dismissible "a table requested the bill" toast. `request_bill` now stamps **`orders.bill_requested_at`** (new column) so that signal rides the reliable `orders` stream. Verified: floor goes 0→1 active orders live with no reload (`verify-admin-live.mjs` 3/3).
+- **Staff password reset is now a chooser, not an instant overwrite:** clicking Reset opens an inline `PasswordInput` (eye toggle) to type/see the new password; blank still auto-generates. `resetStaffPasswordAction` takes an optional typed password. `verify-admin-staff.mjs` 9/9 (now resets to a chosen password and confirms it signs in).
+- **Per-table seat capacity:** "Add tables" has a "Seats each" field; each table row has an inline seats dropdown that auto-saves (`updateTableCapacityAction`). No more every-table-is-2. Plus mobile fixes: nav drawer no longer clips Sign out; table rows use a compact "Copy customer link" button so nothing overflows at 371px.
+- **⚠️ Migration 005 must be applied** (founder runs the SQL in the Supabase SQL editor): it does both the stable-token fix AND adds `bill_requested_at` + updates `request_bill`. Until applied, `verify-admin.mjs`'s "qr_token stays stable" assertion stays red and the bill-request toast won't fire (the live floor refresh still works).
+
+**Next — founder-driven:** (1) run migration `005_stable_qr_token.sql` in the Supabase SQL editor; (2) set `NEXT_PUBLIC_APP_URL` in Vercel + redeploy + regenerate QRs. Then the real bottleneck is sales: demo to a café. Deferred features (order history, analytics, staff self password-change, in-app rating storage) await pilot feedback.
 
 ---
 
