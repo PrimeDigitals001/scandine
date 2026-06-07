@@ -111,7 +111,7 @@ export function AdminTopBar({
       <div
         className={cn(
           "overflow-hidden transition-[max-height,opacity] duration-300 ease-out lg:hidden",
-          open ? "max-h-80 opacity-100" : "max-h-0 opacity-0",
+          open ? "max-h-[32rem] opacity-100" : "max-h-0 opacity-0",
         )}
       >
         <nav className="flex flex-col gap-1 border-t border-hairline px-3 py-3">

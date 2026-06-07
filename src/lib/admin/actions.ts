@@ -343,6 +343,7 @@ export async function deleteStaffAction(formData: FormData): Promise<void> {
 const addTablesSchema = z.object({
   count: z.coerce.number().int().min(1).max(50),
   prefix: z.string().trim().max(8).default("T"),
+  capacity: z.coerce.number().int().min(1).max(30).default(2),
 });
 
 export async function addTablesAction(
@@ -353,6 +354,7 @@ export async function addTablesAction(
   const parsed = addTablesSchema.safeParse({
     count: formData.get("count"),
     prefix: formData.get("prefix") || "T",
+    capacity: formData.get("capacity") || 2,
   });
   if (!parsed.success) return { error: "Enter a count between 1 and 50." };
 
@@ -367,6 +369,7 @@ export async function addTablesAction(
   const rows = Array.from({ length: parsed.data.count }, (_, i) => ({
     restaurant_id: ctx.restaurantId,
     table_number: `${prefix}${start + i}`,
+    capacity: parsed.data.capacity,
   }));
   const { error } = await supabase.from("tables").insert(rows);
   if (error) return { error: error.message };
@@ -374,6 +377,18 @@ export async function addTablesAction(
   revalidatePath("/admin/tables");
   revalidatePath("/admin/dashboard");
   return { ok: true };
+}
+
+export async function updateTableCapacityAction(
+  formData: FormData,
+): Promise<void> {
+  await requireAdmin();
+  const tableId = String(formData.get("table_id"));
+  const capacity = Math.max(1, Math.min(30, Number(formData.get("capacity")) || 2));
+  const supabase = await createClient(); // RLS scopes to the owner's tables
+  await supabase.from("tables").update({ capacity }).eq("id", tableId);
+  revalidatePath("/admin/tables");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function deleteTableAction(formData: FormData): Promise<void> {

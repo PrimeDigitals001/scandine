@@ -71,6 +71,20 @@ try {
     `status ${resp.status()}`,
   );
 
+  // change seats on an added table via the inline editor (auto-saves)
+  await page
+    .locator("li")
+    .filter({ hasText: added[0].table_number })
+    .locator("select")
+    .selectOption("8");
+  await page.waitForTimeout(1500);
+  const { data: capRow } = await svc
+    .from("tables")
+    .select("capacity")
+    .eq("id", added[0].id)
+    .single();
+  ok("owner edits a table's seats", capRow?.capacity === 8, `capacity ${capRow?.capacity}`);
+
   // bulk zip works too
   const zip = await page.request.get(`${BASE}/api/admin/qr-zip`);
   ok("owner downloads all QRs (zip)", zip.status() === 200 && (zip.headers()["content-type"] ?? "").includes("zip"));

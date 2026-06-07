@@ -11,7 +11,11 @@ import {
   Check,
   AlertCircle,
 } from "lucide-react";
-import { addTablesAction, deleteTableAction } from "@/lib/admin/actions";
+import {
+  addTablesAction,
+  deleteTableAction,
+  updateTableCapacityAction,
+} from "@/lib/admin/actions";
 import type { ActionState } from "@/lib/admin/types";
 import type { TableFull } from "@/lib/admin/data";
 import { Button } from "@/components/ui/Button";
@@ -69,6 +73,20 @@ export function TablesManager({
             </label>
             <Input id="prefix" name="prefix" defaultValue="T" maxLength={8} className="w-24" />
           </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="capacity" className="text-xs font-medium text-muted">
+              Seats each
+            </label>
+            <Input
+              id="capacity"
+              name="capacity"
+              type="number"
+              min={1}
+              max={30}
+              defaultValue={4}
+              className="w-24"
+            />
+          </div>
           <Button type="submit" loading={addPending}>
             <Plus className="size-4" />
             Add
@@ -105,7 +123,7 @@ export function TablesManager({
                     {t.table_number}
                   </span>
                   <Badge tone={tone[t.status]}>{t.status}</Badge>
-                  <span className="text-xs text-muted">{t.capacity} seats</span>
+                  <SeatsEditor id={t.id} capacity={t.capacity} />
                 </div>
                 <CopyUrl url={`${appUrl}/order/${t.qr_token}`} />
               </div>
@@ -139,29 +157,58 @@ export function TablesManager({
   );
 }
 
+// Inline seat editor — auto-saves on change (each table can have its own size).
+function SeatsEditor({ id, capacity }: { id: string; capacity: number }) {
+  const options = [1, 2, 3, 4, 5, 6, 8, 10, 12];
+  if (!options.includes(capacity)) options.push(capacity);
+  return (
+    <form action={updateTableCapacityAction} className="flex items-center gap-1">
+      <input type="hidden" name="table_id" value={id} />
+      <label htmlFor={`cap-${id}`} className="sr-only">
+        Seats
+      </label>
+      <select
+        id={`cap-${id}`}
+        name="capacity"
+        defaultValue={capacity}
+        onChange={(e) => e.currentTarget.form?.requestSubmit()}
+        className="rounded-control border border-hairline bg-surface py-0.5 pl-1.5 pr-0.5 text-xs text-ink outline-none focus:border-brand-400"
+      >
+        {options
+          .sort((a, b) => a - b)
+          .map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+      </select>
+      <span className="text-xs text-muted">seats</span>
+    </form>
+  );
+}
+
 function CopyUrl({ url }: { url: string }) {
   const [copied, setCopied] = React.useState(false);
   return (
-    <div className="mt-0.5 flex items-center gap-1">
-      <span className="truncate font-mono text-xs text-faint">
-        /order/{url.split("/order/")[1]}
-      </span>
-      <button
-        type="button"
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(url);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          } catch {
-            /* ignore */
-          }
-        }}
-        className="inline-flex shrink-0 items-center gap-1 rounded-control px-1.5 py-0.5 text-xs font-medium text-muted transition-colors hover:bg-canvas hover:text-ink active:scale-95"
-      >
-        {copied ? <Check className="size-3 text-success" /> : <Copy className="size-3" />}
-        {copied ? "Copied" : "Copy link"}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(url);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch {
+          /* ignore */
+        }
+      }}
+      className="-ml-1.5 mt-0.5 inline-flex max-w-full items-center gap-1 rounded-control px-1.5 py-0.5 text-xs font-medium text-muted transition-colors hover:bg-canvas hover:text-ink active:scale-95"
+    >
+      {copied ? (
+        <Check className="size-3 shrink-0 text-success" />
+      ) : (
+        <Copy className="size-3 shrink-0" />
+      )}
+      {copied ? "Copied!" : "Copy customer link"}
+    </button>
   );
 }
