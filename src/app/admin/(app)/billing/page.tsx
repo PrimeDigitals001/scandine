@@ -11,6 +11,11 @@ export default async function BillingPage() {
   const ctx = await getAdminContext();
   const orders = await getBillingOrders();
   const tax = ctx?.restaurant.tax_config ?? { sgst: 2.5, cgst: 2.5 };
+  const cafe = {
+    name: ctx?.restaurant.name ?? "Restaurant",
+    address: ctx?.restaurant.address ?? null,
+    gstNumber: ctx?.restaurant.gst_number ?? null,
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -30,7 +35,7 @@ export default async function BillingPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {orders.map((o) => (
-            <BillingCard key={o.id} order={o} tax={tax} />
+            <BillingCard key={o.id} order={o} tax={tax} cafe={cafe} />
           ))}
         </div>
       )}
