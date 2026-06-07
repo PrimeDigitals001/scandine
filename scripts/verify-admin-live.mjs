@@ -94,6 +94,15 @@ try {
   }
   ok("floor live-updates when a customer orders (no reload)", live, `active=${await activeOrders()}`);
 
+  // customer taps "Request bill" → the owner's screen pops the alert live
+  await anon.rpc("request_bill", { p_qr_token: "demo", p_order_id: orderId });
+  let toast = false;
+  try {
+    await page.getByText(/requested the bill/i).waitFor({ timeout: 12000 });
+    toast = true;
+  } catch {}
+  ok("request-bill alert pops live (needs migration 005)", toast);
+
   ok("no console/page errors", errors.length === 0, errors.slice(0, 2).join(" | "));
 } catch (e) {
   ok("live floor crashed", false, e.message);
