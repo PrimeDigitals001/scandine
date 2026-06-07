@@ -393,6 +393,12 @@ When you finish a session, leave the repo runnable and note what's next at the b
   - **`is_active` now enforced at login** (`unifiedLogin` rejects disabled accounts).
 - **Verified:** build green, lint clean, `verify-admin-staff.mjs` 7/7 (create→login→reset→new-works/old-fails→disabled-blocked→settings). No regressions (login/nav/admin/customer all green). NOTE: the shared Supabase means live testers' data (e.g. a stray table T7 order) shows up locally — clear stray non-cleared orders if a `.first()`-based test trips.
 
+### Session 9 — Owner self-serve tables (offload super-admin) ✅
+- Founder wanted less concentrated in super admin. Added **owner table management** (`/admin/tables`, `TablesManager`): add tables (count+prefix), download per-table QR PNG + bulk ZIP, delete. Uses the cookie client + `tables` RLS admin policies (no service role needed). Nav gained "Tables" (now Floor·Billing·Menu·Tables·Staff·Settings).
+- **Owner QR endpoints:** `GET /api/admin/qr/[token]` + `/api/admin/qr-zip` — RLS-scoped (the `tables` lookup only succeeds for the caller's restaurant, so a token outside their café → 404). Not proxy-guarded (RLS is the gate).
+- Division of labour now: **super admin = onboard tenant + first owner account + suspend + reset owner password**; **owner = everything day-to-day** (menu, tables, staff, billing, settings, own password). Super admin's restaurant-detail table tools stay (still handy at onboarding).
+- **Verified:** build green, lint clean, `verify-admin-tables.mjs` 6/6 (add→QR PNG→bulk ZIP→unknown-token-404→delete). No regressions (nav 5/5, login 4/4).
+
 **Next — founder-driven:** set `NEXT_PUBLIC_APP_URL` in Vercel + redeploy + regenerate QRs. Then the real bottleneck is sales: demo to a café. Deferred features (order history, analytics, menu photos, staff self password-change, in-app rating storage) await pilot feedback.
 
 ---

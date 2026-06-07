@@ -294,6 +294,53 @@ export async function deleteStaffAction(formData: FormData): Promise<void> {
   revalidatePath("/admin/staff");
 }
 
+// ---- tables (owner-managed; RLS scopes to their restaurant) ----------------
+
+const addTablesSchema = z.object({
+  count: z.coerce.number().int().min(1).max(50),
+  prefix: z.string().trim().max(8).default("T"),
+});
+
+export async function addTablesAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const ctx = await requireAdmin();
+  const parsed = addTablesSchema.safeParse({
+    count: formData.get("count"),
+    prefix: formData.get("prefix") || "T",
+  });
+  if (!parsed.success) return { error: "Enter a count between 1 and 50." };
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("tables")
+    .select("table_number")
+    .eq("restaurant_id", ctx.restaurantId);
+  const start = (existing?.length ?? 0) + 1;
+  const prefix = parsed.data.prefix || "T";
+
+  const rows = Array.from({ length: parsed.data.count }, (_, i) => ({
+    restaurant_id: ctx.restaurantId,
+    table_number: `${prefix}${start + i}`,
+  }));
+  const { error } = await supabase.from("tables").insert(rows);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/tables");
+  revalidatePath("/admin/dashboard");
+  return { ok: true };
+}
+
+export async function deleteTableAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const tableId = String(formData.get("table_id"));
+  const supabase = await createClient(); // RLS limits deletes to the owner's tables
+  await supabase.from("tables").delete().eq("id", tableId);
+  revalidatePath("/admin/tables");
+  revalidatePath("/admin/dashboard");
+}
+
 // ---- change own password ---------------------------------------------------
 
 export async function changeOwnPasswordAction(

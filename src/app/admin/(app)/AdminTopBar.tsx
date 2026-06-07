@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Receipt,
   BookOpen,
+  Grid3x3,
   Users,
   Settings,
   LogOut,
@@ -17,6 +18,7 @@ const links = [
   { href: "/admin/dashboard", label: "Floor", icon: LayoutDashboard },
   { href: "/admin/billing", label: "Billing", icon: Receipt },
   { href: "/admin/menu", label: "Menu", icon: BookOpen },
+  { href: "/admin/tables", label: "Tables", icon: Grid3x3 },
   { href: "/admin/staff", label: "Staff", icon: Users },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];

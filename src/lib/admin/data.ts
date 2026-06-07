@@ -175,6 +175,23 @@ export interface StaffMember {
   email: string | null;
 }
 
+export interface TableFull {
+  id: string;
+  table_number: string;
+  qr_token: string;
+  status: "empty" | "occupied" | "billing";
+  capacity: number;
+}
+
+export async function getTables(): Promise<TableFull[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("tables")
+    .select("id, table_number, qr_token, status, capacity")
+    .order("table_number");
+  return data ?? [];
+}
+
 // Emails live in auth.users → needs the service role. Call only after the page
 // has confirmed an admin via getAdminContext, and pass that restaurantId.
 export async function getStaff(restaurantId: string): Promise<StaffMember[]> {
