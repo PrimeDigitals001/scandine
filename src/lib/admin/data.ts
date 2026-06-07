@@ -147,6 +147,7 @@ export interface MenuItemRow {
   price: number;
   is_veg: boolean;
   is_available: boolean;
+  image_url: string | null;
   sort_order: number;
 }
 
@@ -162,7 +163,7 @@ export async function getMenu(): Promise<{
       .order("sort_order"),
     supabase
       .from("menu_items")
-      .select("id, category_id, name, description, price, is_veg, is_available, sort_order")
+      .select("id, category_id, name, description, price, is_veg, is_available, image_url, sort_order")
       .order("sort_order"),
   ]);
   return { categories: cats.data ?? [], items: items.data ?? [] };

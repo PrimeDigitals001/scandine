@@ -203,6 +203,11 @@ export async function deleteTable(formData: FormData): Promise<void> {
 const adminAccountSchema = z.object({
   email: z.string().trim().email("Enter a valid email."),
   full_name: z.string().trim().max(120).optional(),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters.")
+    .max(72)
+    .optional(),
 });
 
 export async function createAdminAccount(
@@ -215,13 +220,15 @@ export async function createAdminAccount(
   const parsed = adminAccountSchema.safeParse({
     email: formData.get("email"),
     full_name: opt(formData.get("full_name")) ?? undefined,
+    password: opt(formData.get("password")) ?? undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
   const admin = createAdminClient();
-  const tempPassword = `Cafe-${randomBytes(4).toString("hex")}`;
+  // set a password, or leave blank to auto-generate a temporary one
+  const tempPassword = parsed.data.password ?? `Cafe-${randomBytes(4).toString("hex")}`;
 
   const { data: created, error: cErr } = await admin.auth.admin.createUser({
     email: parsed.data.email,
@@ -246,7 +253,12 @@ export async function createAdminAccount(
   }
 
   revalidatePath(`/superadmin/restaurants/${restaurantId}`);
-  return { ok: true, createdEmail: parsed.data.email, tempPassword };
+  return {
+    ok: true,
+    createdEmail: parsed.data.email,
+    tempPassword,
+    manualPassword: Boolean(parsed.data.password),
+  };
 }
 
 export async function resetAdminPasswordAction(

@@ -295,15 +295,25 @@ function ItemCard({
         !item.is_available && "opacity-60",
       )}
     >
-      <div
-        className={cn(
-          "grid size-20 shrink-0 place-items-center rounded-card bg-gradient-to-br text-2xl font-bold text-brand-300",
-          gradientFor(item.id),
-        )}
-        aria-hidden="true"
-      >
-        {item.name.charAt(0)}
-      </div>
+      {item.image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={item.image_url}
+          alt=""
+          loading="lazy"
+          className="size-20 shrink-0 rounded-card object-cover"
+        />
+      ) : (
+        <div
+          className={cn(
+            "grid size-20 shrink-0 place-items-center rounded-card bg-gradient-to-br text-2xl font-bold text-brand-300",
+            gradientFor(item.id),
+          )}
+          aria-hidden="true"
+        >
+          {item.name.charAt(0)}
+        </div>
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1.5">

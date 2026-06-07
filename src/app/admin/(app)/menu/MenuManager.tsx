@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import { Plus, Pencil, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertCircle, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
   saveItemAction,
@@ -26,6 +26,7 @@ interface Draft {
   price: string;
   is_veg: boolean;
   is_available: boolean;
+  image_url: string;
 }
 
 const empty: ActionState = {};
@@ -47,12 +48,30 @@ export function MenuManager({
     price: "",
     is_veg: true,
     is_available: true,
+    image_url: "",
   });
 
   const [draft, setDraft] = React.useState<Draft>(blank);
+  const [imgPreview, setImgPreview] = React.useState<string | null>(null);
   const [saveState, saveAction, savePending] = useActionState(saveItemAction, empty);
   const [catState, catAction, catPending] = useActionState(createCategoryAction, empty);
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
+
+  // switch the editor to a draft and drop any locally-previewed upload
+  const pickDraft = (d: Draft) => {
+    setImgPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setDraft(d);
+  };
+  const onPickImage = (file: File | undefined) => {
+    if (!file) return;
+    setImgPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -63,7 +82,7 @@ export function MenuManager({
             Add items, set prices, and toggle what&apos;s sold out.
           </p>
         </div>
-        <Button variant="outline" onClick={() => setDraft(blank())}>
+        <Button variant="outline" onClick={() => pickDraft(blank())}>
           <Plus className="size-4" />
           New item
         </Button>
@@ -84,6 +103,37 @@ export function MenuManager({
           <form action={saveAction} className="flex flex-col gap-4">
             <input type="hidden" name="id" value={draft.id} />
             <input type="hidden" name="restaurant_id" value={restaurantId} />
+
+            {/* Photo */}
+            <Field
+              label="Photo"
+              htmlFor="image"
+              hint="PNG, JPG or WebP · up to 5 MB. Optional — shown to customers."
+            >
+              <div className="flex items-center gap-3">
+                {imgPreview || draft.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imgPreview || draft.image_url}
+                    alt=""
+                    className="size-16 shrink-0 rounded-control border border-hairline object-cover"
+                  />
+                ) : (
+                  <div className="grid size-16 shrink-0 place-items-center rounded-control border border-dashed border-hairline text-faint">
+                    <ImageIcon className="size-5" />
+                  </div>
+                )}
+                <input
+                  id="image"
+                  name="image"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(e) => onPickImage(e.target.files?.[0])}
+                  className="block w-full text-sm text-muted file:mr-3 file:cursor-pointer file:rounded-control file:border-0 file:bg-ink file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
+                />
+              </div>
+            </Field>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Name" htmlFor="name" required>
                 <Input
@@ -167,7 +217,7 @@ export function MenuManager({
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => setDraft(blank())}
+                  onClick={() => pickDraft(blank())}
                 >
                   Cancel
                 </Button>
@@ -198,6 +248,14 @@ export function MenuManager({
                       !it.is_available && "opacity-60",
                     )}
                   >
+                    {it.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={it.image_url}
+                        alt=""
+                        className="size-10 shrink-0 rounded-control object-cover"
+                      />
+                    ) : null}
                     <VegDot veg={it.is_veg} size={14} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink">
@@ -232,7 +290,7 @@ export function MenuManager({
                     <button
                       type="button"
                       onClick={() =>
-                        setDraft({
+                        pickDraft({
                           id: it.id,
                           category_id: it.category_id ?? cat.id,
                           name: it.name,
@@ -240,6 +298,7 @@ export function MenuManager({
                           price: String(it.price),
                           is_veg: it.is_veg,
                           is_available: it.is_available,
+                          image_url: it.image_url ?? "",
                         })
                       }
                       className="grid size-8 place-items-center rounded-control text-muted transition-colors hover:bg-canvas hover:text-ink active:scale-95"

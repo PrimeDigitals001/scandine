@@ -20,6 +20,8 @@ const svc = createClient(
 );
 const BASE = process.env.BASE ?? "http://localhost:3000";
 const STAFF_EMAIL = `teststaff-${Date.now()}@scandine.test`;
+const STAFF_EMAIL2 = `teststaff2-${Date.now()}@scandine.test`;
+const MANUAL_PW = "MyKitchen-2026";
 
 let pass = 0;
 let fail = 0;
@@ -61,10 +63,23 @@ try {
   await page.getByLabel("Email").fill(STAFF_EMAIL);
   await page.getByLabel("Name").fill("Test Cook");
   await page.getByRole("button", { name: "Create login" }).click();
-  await page.getByText(/shown only once/i).waitFor({ timeout: 12000 });
+  await page.getByText(/Cafe-[0-9a-f]{8}/).waitFor({ timeout: 12000 });
   pw1 = grabPw(await page.content());
-  ok("owner creates a kitchen login (temp password shown)", !!pw1, pw1 ?? "no password");
+  ok("owner creates a kitchen login (auto password shown)", !!pw1, pw1 ?? "no password");
   await page.close();
+
+  // owner creates a SECOND login with a manually-typed password
+  page = await owner.newPage();
+  await page.goto(`${BASE}/admin/staff`, { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Email").fill(STAFF_EMAIL2);
+  await page.getByLabel("Password").fill(MANUAL_PW);
+  await page.getByRole("button", { name: "Create login" }).click();
+  await page.getByText(MANUAL_PW).waitFor({ timeout: 12000 });
+  ok("owner sets a manual password", true);
+  await page.close();
+  const cm = await browser.newContext();
+  ok("manual-password login signs in → /kitchen", await landsOnKitchen(cm, STAFF_EMAIL2, MANUAL_PW));
+  await cm.close();
 
   // the new staff can sign in → kitchen
   const c1 = await browser.newContext();
@@ -111,8 +126,10 @@ try {
   await browser.close();
   // cleanup the throwaway staff
   const { data } = await svc.auth.admin.listUsers();
-  const u = data.users.find((x) => x.email === STAFF_EMAIL);
-  if (u) await svc.auth.admin.deleteUser(u.id);
+  for (const email of [STAFF_EMAIL, STAFF_EMAIL2]) {
+    const u = data.users.find((x) => x.email === email);
+    if (u) await svc.auth.admin.deleteUser(u.id);
+  }
 }
 
 console.log(`\n${fail === 0 ? "🎉" : "⚠️ "} ${pass} passed, ${fail} failed`);

@@ -100,7 +100,7 @@ export function TablesManager({
                 <QrCode className="size-5" />
               </span>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="font-bold tracking-tight text-ink">
                     {t.table_number}
                   </span>
@@ -109,26 +109,28 @@ export function TablesManager({
                 </div>
                 <CopyUrl url={`${appUrl}/order/${t.qr_token}`} />
               </div>
-              <a
-                href={`/api/admin/qr/${t.qr_token}`}
-                className="grid size-9 shrink-0 place-items-center rounded-control border border-hairline text-ink transition-colors hover:bg-canvas active:scale-95"
-                title="Download QR PNG"
-              >
-                <Download className="size-4" />
-              </a>
-              <form action={deleteTableAction}>
-                <input type="hidden" name="table_id" value={t.id} />
-                <button
-                  type="submit"
-                  onClick={(e) => {
-                    if (!confirm(`Delete ${t.table_number}?`)) e.preventDefault();
-                  }}
-                  className="grid size-9 place-items-center rounded-control text-muted transition-colors hover:bg-danger-soft hover:text-danger active:scale-95"
-                  title="Delete table"
+              <div className="flex shrink-0 items-center gap-1">
+                <a
+                  href={`/api/admin/qr/${t.qr_token}`}
+                  className="grid size-9 place-items-center rounded-control border border-hairline text-ink transition-colors hover:bg-canvas active:scale-95"
+                  title="Download QR PNG"
                 >
-                  <Trash2 className="size-4" />
-                </button>
-              </form>
+                  <Download className="size-4" />
+                </a>
+                <form action={deleteTableAction}>
+                  <input type="hidden" name="table_id" value={t.id} />
+                  <button
+                    type="submit"
+                    onClick={(e) => {
+                      if (!confirm(`Delete ${t.table_number}?`)) e.preventDefault();
+                    }}
+                    className="grid size-9 place-items-center rounded-control text-muted transition-colors hover:bg-danger-soft hover:text-danger active:scale-95"
+                    title="Delete table"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </form>
+              </div>
             </li>
           ))}
         </ul>

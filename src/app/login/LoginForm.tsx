@@ -5,7 +5,7 @@ import { AlertCircle } from "lucide-react";
 import { unifiedLogin } from "./actions";
 import type { LoginState } from "./types";
 import { Button } from "@/components/ui/Button";
-import { Input, Field } from "@/components/ui/Input";
+import { Input, PasswordInput, Field } from "@/components/ui/Input";
 
 const initial: LoginState = {};
 
@@ -26,10 +26,9 @@ export function LoginForm() {
         />
       </Field>
       <Field label="Password" htmlFor="password">
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
           placeholder="••••••••"
           required

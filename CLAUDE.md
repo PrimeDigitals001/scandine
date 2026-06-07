@@ -399,7 +399,18 @@ When you finish a session, leave the repo runnable and note what's next at the b
 - Division of labour now: **super admin = onboard tenant + first owner account + suspend + reset owner password**; **owner = everything day-to-day** (menu, tables, staff, billing, settings, own password). Super admin's restaurant-detail table tools stay (still handy at onboarding).
 - **Verified:** build green, lint clean, `verify-admin-tables.mjs` 6/6 (add→QR PNG→bulk ZIP→unknown-token-404→delete). No regressions (nav 5/5, login 4/4).
 
-**Next — founder-driven:** set `NEXT_PUBLIC_APP_URL` in Vercel + redeploy + regenerate QRs. Then the real bottleneck is sales: demo to a café. Deferred features (order history, analytics, menu photos, staff self password-change, in-app rating storage) await pilot feedback.
+### Session 10 — Detailing pass + menu photos (founder punch-list) ✅
+Founder reviewed and flagged a batch of polish + two real gaps:
+- **Eye toggle on passwords:** new `PasswordInput` primitive (`components/ui/Input.tsx`) with show/hide eye; used on `/login` and both manual-password forms. ⚠️ its toggle button is labelled `Show`/`Hide` (NOT "Show password") on purpose — Playwright `getByLabel("Password")` does a substring match and would otherwise grab the eye button (broke every login-based test). Keep it that way.
+- **Manual passwords:** owner can type a kitchen-staff password (or leave blank to auto-generate) on `/admin/staff`; super admin can do the same when creating an owner login. Optional `password` added to `staffSchema` + `adminAccountSchema`; `ActionState.manualPassword` drives the cred-box wording.
+- **Menu item photos (Supabase Storage):** public bucket `menu-images` created via `scripts/setup-storage.mjs` (idempotent — already run on live). `saveItemAction` uploads via the **service role** (after `requireAdmin`) to `menu-images/<restaurantId>/<rand>.<ext>`, stores the public URL on `menu_items.image_url` (only overwrites when a new file is sent). Builder (`MenuManager`) gained a file picker + live preview + row thumbnails; customer `MenuScreen` renders the photo (falls back to the letter-gradient). Plain `<img>` + `eslint-disable @next/next/no-img-element` (deliberate — avoids Vercel image-optimization usage).
+- **Landing:** removed the public **Super Admin** portal card (now "Three surfaces, one app", `sm:grid-cols-3`). `/superadmin` still reachable by URL, just unlisted.
+- **Admin nav:** inline pills now switch to the hamburger below **`lg`** (was `sm`) — at `sm`–`md` the 6 links overflowed and a button clipped.
+- **Tables tab mobile:** grouped the QR-download + delete buttons in a `shrink-0` cluster and let the meta row wrap, so nothing clips at 375px.
+- **Real bug fixed:** `itemSchema.category_id` was `z.string().uuid()`, but seeded category ids (`22222222-0000-…`) aren't strict RFC-4122 UUIDs → **zod 4 rejected them, so editing any seeded item silently failed** with "Pick a category." Relaxed to `z.string().min(1)` (the `menu_items→menu_categories` FK is the real guard).
+- **Verified:** build green, lint clean. login 4/4, nav 5/5, **staff 9/9** (incl. manual password), **image 5/5** (upload→Storage→public URL→customer renders), tables 6/6, menu 5/5, customer-ui both engines. New scripts: `setup-storage.mjs`, `verify-admin-image.mjs`.
+
+**Next — founder-driven:** set `NEXT_PUBLIC_APP_URL` in Vercel + redeploy + regenerate QRs. Then the real bottleneck is sales: demo to a café. Deferred features (order history, analytics, staff self password-change, in-app rating storage) await pilot feedback.
 
 ---
 

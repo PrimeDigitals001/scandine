@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const base =
@@ -13,6 +14,34 @@ export const Input = React.forwardRef<
 >(function Input({ className, ...props }, ref) {
   return (
     <input ref={ref} className={cn(base, "h-11 px-3.5", className)} {...props} />
+  );
+});
+
+/** Password field with a show/hide eye toggle. */
+export const PasswordInput = React.forwardRef<
+  HTMLInputElement,
+  Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">
+>(function PasswordInput({ className, ...props }, ref) {
+  const [show, setShow] = React.useState(false);
+  return (
+    <div className="relative">
+      <input
+        ref={ref}
+        type={show ? "text" : "password"}
+        className={cn(base, "h-11 pl-3.5 pr-11", className)}
+        {...props}
+      />
+      <button
+        type="button"
+        onClick={() => setShow((s) => !s)}
+        tabIndex={-1}
+        title={show ? "Hide password" : "Show password"}
+        aria-label={show ? "Hide" : "Show"}
+        className="absolute inset-y-0 right-0 grid w-11 place-items-center text-muted transition-colors hover:text-ink"
+      >
+        {show ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}
+      </button>
+    </div>
   );
 });
 

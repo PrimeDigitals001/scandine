@@ -95,8 +95,12 @@ export async function setOrderStatusAction(formData: FormData): Promise<void> {
 const itemSchema = z.object({
   name: z.string().trim().min(1, "Name is required."),
   price: z.coerce.number().min(0, "Price can't be negative."),
-  category_id: z.string().uuid("Pick a category."),
+  // any non-empty id; the menu_items → menu_categories FK is the real guard
+  // (some seeded category ids aren't strict RFC-4122 UUIDs).
+  category_id: z.string().min(1, "Pick a category."),
 });
+
+const IMG_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 export async function saveItemAction(
   _prev: ActionState,
@@ -115,7 +119,33 @@ export async function saveItemAction(
 
   // restaurant_id comes from the caller's profile (needed for INSERT under RLS)
   const restaurantId = String(formData.get("restaurant_id"));
-  const row = {
+
+  // Optional photo upload → public Storage bucket, scoped to the caller's café.
+  let imageUrl: string | undefined;
+  const file = formData.get("image");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > 5 * 1024 * 1024) {
+      return { error: "Image must be under 5 MB." };
+    }
+    if (!IMG_TYPES.includes(file.type)) {
+      return { error: "Image must be a PNG, JPG, or WebP." };
+    }
+    const ctx = await requireAdmin(); // confirm admin before a privileged upload
+    const svc = createAdminClient();
+    const ext =
+      file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const path = `${ctx.restaurantId}/${randomBytes(8).toString("hex")}.${ext}`;
+    const { error: upErr } = await svc.storage
+      .from("menu-images")
+      .upload(path, Buffer.from(await file.arrayBuffer()), {
+        contentType: file.type,
+        upsert: true,
+      });
+    if (upErr) return { error: upErr.message };
+    imageUrl = svc.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
+  }
+
+  const row: Record<string, unknown> = {
     restaurant_id: restaurantId,
     category_id: parsed.data.category_id,
     name: parsed.data.name,
@@ -124,6 +154,8 @@ export async function saveItemAction(
     is_veg: formData.get("is_veg") === "on",
     is_available: formData.get("is_available") === "on",
   };
+  // only overwrite the photo when a new one was uploaded
+  if (imageUrl !== undefined) row.image_url = imageUrl;
 
   const { error } = id
     ? await supabase.from("menu_items").update(row).eq("id", id)
@@ -203,6 +235,11 @@ export async function updateSettingsAction(
 const staffSchema = z.object({
   email: z.string().trim().email("Enter a valid email."),
   full_name: z.string().trim().max(120).optional(),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters.")
+    .max(72)
+    .optional(),
 });
 
 export async function createStaffAction(
@@ -213,13 +250,15 @@ export async function createStaffAction(
   const parsed = staffSchema.safeParse({
     email: formData.get("email"),
     full_name: opt(formData.get("full_name")) ?? undefined,
+    password: opt(formData.get("password")) ?? undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
   const svc = createAdminClient();
-  const pw = tempPassword();
+  // owner can set a password, or leave it blank to auto-generate a temporary one
+  const pw = parsed.data.password ?? tempPassword();
   const { data: created, error: cErr } = await svc.auth.admin.createUser({
     email: parsed.data.email,
     password: pw,
@@ -240,7 +279,12 @@ export async function createStaffAction(
     return { error: pErr.message };
   }
   revalidatePath("/admin/staff");
-  return { ok: true, createdEmail: parsed.data.email, tempPassword: pw };
+  return {
+    ok: true,
+    createdEmail: parsed.data.email,
+    tempPassword: pw,
+    manualPassword: Boolean(parsed.data.password),
+  };
 }
 
 export async function resetStaffPasswordAction(

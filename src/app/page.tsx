@@ -3,7 +3,6 @@ import {
   QrCode,
   ChefHat,
   LayoutDashboard,
-  ShieldCheck,
   ArrowRight,
   Smartphone,
   Zap,
@@ -37,13 +36,6 @@ const PORTALS = [
     title: "Admin",
     desc: "Menu builder, floor view, tables, QRs, billing.",
     step: 6,
-  },
-  {
-    href: "/superadmin",
-    icon: ShieldCheck,
-    title: "Super Admin",
-    desc: "Onboard cafés, create tenants, generate QRs.",
-    step: 3,
   },
 ] as const;
 
@@ -140,11 +132,11 @@ export default function Home() {
       >
         <div className="mb-5 flex items-end justify-between">
           <h2 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">
-            Four surfaces, one app
+            Three surfaces, one app
           </h2>
           <span className="text-sm text-muted">Tap to enter</span>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-3">
           {PORTALS.map((p) => (
             <Link key={p.href} href={p.href} className="group">
               <Card interactive className="flex h-full flex-col">

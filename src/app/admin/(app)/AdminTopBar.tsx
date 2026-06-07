@@ -49,7 +49,7 @@ export function AdminTopBar({
         </div>
 
         {/* Desktop nav */}
-        <nav className="hidden items-center gap-1 sm:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {links.map((l) => (
             <Link
               key={l.href}
@@ -66,7 +66,7 @@ export function AdminTopBar({
             </Link>
           ))}
         </nav>
-        <form action={signOut} className="hidden sm:block">
+        <form action={signOut} className="hidden lg:block">
           <button
             type="submit"
             className="inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-canvas hover:text-danger"
@@ -82,7 +82,7 @@ export function AdminTopBar({
           onClick={() => setOpen((o) => !o)}
           aria-label="Menu"
           aria-expanded={open}
-          className="grid size-10 place-items-center rounded-control text-ink active:scale-90 sm:hidden"
+          className="grid size-10 place-items-center rounded-control text-ink active:scale-90 lg:hidden"
         >
           <span className="relative block h-4 w-5">
             <span
@@ -110,7 +110,7 @@ export function AdminTopBar({
       {/* Mobile menu (animated slide-down) */}
       <div
         className={cn(
-          "overflow-hidden transition-[max-height,opacity] duration-300 ease-out sm:hidden",
+          "overflow-hidden transition-[max-height,opacity] duration-300 ease-out lg:hidden",
           open ? "max-h-80 opacity-100" : "max-h-0 opacity-0",
         )}
       >

@@ -13,7 +13,7 @@ import {
 import type { ActionState } from "@/lib/admin/types";
 import type { StaffMember } from "@/lib/admin/data";
 import { Button } from "@/components/ui/Button";
-import { Input, Field } from "@/components/ui/Input";
+import { Input, PasswordInput, Field } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 
@@ -54,6 +54,20 @@ export function StaffManager({ staff }: { staff: StaffMember[] }) {
           <Field label="Name" htmlFor="full_name" hint="Optional.">
             <Input id="full_name" name="full_name" placeholder="Ravi" />
           </Field>
+          <Field
+            label="Password"
+            htmlFor="password"
+            hint="Set one yourself, or leave blank to auto-generate a temporary one."
+            className="sm:col-span-2"
+          >
+            <PasswordInput
+              id="password"
+              name="password"
+              autoComplete="new-password"
+              placeholder="Min 6 characters — or leave blank"
+              minLength={6}
+            />
+          </Field>
           <div className="flex justify-end sm:col-span-2">
             <Button type="submit" loading={createPending}>
               <Plus className="size-4" />
@@ -66,7 +80,11 @@ export function StaffManager({ staff }: { staff: StaffMember[] }) {
           <CredBox
             email={createState.createdEmail}
             password={createState.tempPassword}
-            note="Give these to your kitchen staff. The password is shown only once."
+            note={
+              createState.manualPassword
+                ? "Share these with your kitchen staff to sign in at /login."
+                : "Auto-generated — copy it now, it won't be shown again."
+            }
           />
         )}
       </Card>
@@ -181,7 +199,7 @@ function CredBox({
       <p className="mb-2 text-sm font-semibold text-success-strong">{note}</p>
       <div className="flex flex-col gap-2">
         {email && <CredRow label="Email" value={email} />}
-        <CredRow label="Temporary password" value={password} />
+        <CredRow label="Password" value={password} />
       </div>
     </div>
   );

@@ -5,6 +5,8 @@ export interface ActionState {
   // create-admin / reset success payload (shown once):
   createdEmail?: string;
   tempPassword?: string;
+  // true when the operator typed the password (vs. an auto-generated one):
+  manualPassword?: boolean;
   // which admin row a reset belongs to:
   resetUserId?: string;
 }

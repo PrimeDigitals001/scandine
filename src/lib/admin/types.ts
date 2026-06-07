@@ -5,6 +5,8 @@ export interface ActionState {
   // credential flows show a one-time secret:
   createdEmail?: string;
   tempPassword?: string;
+  // true when the owner typed the password (vs. an auto-generated temp one):
+  manualPassword?: boolean;
   // which staff row a reset belongs to (so the UI shows it on the right row):
   resetStaffId?: string;
 }
