@@ -35,6 +35,7 @@ export interface CustomerRestaurant {
   address: string | null;
   google_review_url: string | null;
   tax_config: { sgst: number; cgst: number };
+  is_accepting_orders: boolean;
 }
 export interface CustomerTable {
   id: string;

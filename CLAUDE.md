@@ -417,7 +417,13 @@ Founder reviewed and flagged a batch of polish + two real gaps:
 - **Per-table seat capacity:** "Add tables" has a "Seats each" field; each table row has an inline seats dropdown that auto-saves (`updateTableCapacityAction`). No more every-table-is-2. Plus mobile fixes: nav drawer no longer clips Sign out; table rows use a compact "Copy customer link" button so nothing overflows at 371px.
 - **⚠️ Migration 005 must be applied** (founder runs the SQL in the Supabase SQL editor): it does both the stable-token fix AND adds `bill_requested_at` + updates `request_bill`. Until applied, `verify-admin.mjs`'s "qr_token stays stable" assertion stays red and the bill-request toast won't fire (the live floor refresh still works).
 
-**Next — founder-driven:** (1) run migration `005_stable_qr_token.sql` in the Supabase SQL editor; (2) set `NEXT_PUBLIC_APP_URL` in Vercel + redeploy + regenerate QRs. Then the real bottleneck is sales: demo to a café. Deferred features (order history, analytics, staff self password-change, in-app rating storage) await pilot feedback.
+### Session 12 — Printable bill + open/closed toggle ✅
+- **Printable bill:** once a bill is generated, a **Print bill** button on `BillingCard` renders a self-contained **80mm thermal-style receipt** (café name, GSTIN, IST timestamp, itemised lines, GST, discount, TOTAL, payment method, footer) into a hidden iframe and opens the OS print dialog — works with any printer the device sees, incl. thermal. `verify-admin-print.mjs` 5/5. Direct ESC/POS auto-cut printing deferred to a pilot with a known printer.
+- **Open/closed toggle (`restaurants.is_accepting_orders`, migration 006):** QR links are permanent stickers, so an off-hours scan could drop an order. Added an owner **Open · taking orders / Closed · paused** switch on the Floor (`OpenToggle` + `setAcceptingOrdersAction`). **Enforced server-side:** `place_order` + `add_items_to_order` reject while closed; `resolve_table` returns the flag so the customer PWA shows a "Not taking orders" notice and hides Add buttons + cart. `verify-admin-open.mjs` 8/8 (close → customer blocked + sees closed → server rejects → reopen → orders work). **Sequencing note:** the column must exist before the code that selects it deploys — so migration 006 was applied BEFORE pushing (unlike 005, which the code tolerated).
+- **Migrations 005 + 006 are APPLIED to the live DB** (founder ran them). `getAdminContext` now selects `is_accepting_orders` (would 400 without the column).
+- No regressions: customer-ui 14/14, admin billing 11/11, floor 4/4, staff 9/9.
+
+**Next — founder-driven:** set `NEXT_PUBLIC_APP_URL` in Vercel + redeploy + regenerate QRs (the last pending infra step). Then the real bottleneck is sales: demo to a café. Deferred features (order history, analytics, staff self password-change, in-app rating storage, direct ESC/POS printing) await pilot feedback.
 
 ---
 

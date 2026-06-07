@@ -10,6 +10,7 @@ export interface AdminRestaurant {
   google_review_url: string | null;
   tax_config: { sgst: number; cgst: number };
   is_active: boolean;
+  is_accepting_orders: boolean;
 }
 
 export interface AdminContext {
@@ -38,7 +39,7 @@ export async function getAdminContext(): Promise<AdminContext | null> {
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, name, slug, gst_number, address, google_review_url, tax_config, is_active",
+      "id, name, slug, gst_number, address, google_review_url, tax_config, is_active, is_accepting_orders",
     )
     .eq("id", profile.restaurant_id)
     .maybeSingle();

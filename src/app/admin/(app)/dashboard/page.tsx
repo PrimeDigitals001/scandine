@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Armchair, ListOrdered, Receipt, IndianRupee } from "lucide-react";
+import { Armchair, ListOrdered, Receipt, IndianRupee, PauseCircle } from "lucide-react";
+import { getAdminContext } from "@/lib/admin/context";
 import { getDashboard } from "@/lib/admin/data";
 import { Card } from "@/components/ui/Card";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { OpenToggle } from "../OpenToggle";
 
 export const metadata: Metadata = { title: "Admin · Floor" };
 
@@ -16,7 +18,11 @@ const tableTone = {
 } as const;
 
 export default async function AdminDashboardPage() {
-  const { tables, stats } = await getDashboard();
+  const [{ tables, stats }, ctx] = await Promise.all([
+    getDashboard(),
+    getAdminContext(),
+  ]);
+  const accepting = ctx?.restaurant.is_accepting_orders ?? true;
 
   const STATS = [
     { label: "Tables in use", value: String(stats.occupied), icon: Armchair },
@@ -31,12 +37,26 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-ink">Floor</h1>
-        <p className="mt-0.5 text-sm text-muted">
-          Live table status. Tap an occupied table to bill it.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Floor</h1>
+          <p className="mt-0.5 text-sm text-muted">
+            Live table status. Tap an occupied table to bill it.
+          </p>
+        </div>
+        <OpenToggle accepting={accepting} />
       </div>
+
+      {!accepting && (
+        <div className="flex items-start gap-3 rounded-card border border-danger/25 bg-danger-soft px-4 py-3">
+          <PauseCircle className="size-5 shrink-0 text-danger-strong" />
+          <p className="text-sm text-danger-strong">
+            <span className="font-bold">You&apos;re not taking orders.</span>{" "}
+            Anyone who scans a table QR sees a “closed” notice and can&apos;t
+            order until you switch back to Open.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {STATS.map((s) => (

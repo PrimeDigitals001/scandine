@@ -63,6 +63,7 @@ create table public.restaurants (
   subscription_plan  public.subscription_plan not null default 'free',
   pos_mode           public.pos_mode not null default 'standalone',
   is_active          boolean not null default true,
+  is_accepting_orders boolean not null default true,
   onboarded_by       text,
   onboarded_at       timestamptz,
   created_at         timestamptz not null default now(),
@@ -613,7 +614,8 @@ begin
       'slug', v_restaurant.slug,
       'address', v_restaurant.address,
       'google_review_url', v_restaurant.google_review_url,
-      'tax_config', v_restaurant.tax_config
+      'tax_config', v_restaurant.tax_config,
+      'is_accepting_orders', v_restaurant.is_accepting_orders
     ),
     'table', jsonb_build_object(
       'id', v_table.id,
@@ -705,6 +707,9 @@ begin
   if not v_restaurant.is_active then
     raise exception 'This restaurant is not currently active' using errcode = 'P0001';
   end if;
+  if not v_restaurant.is_accepting_orders then
+    raise exception 'The café is not accepting orders right now' using errcode = 'P0001';
+  end if;
 
   -- Business rule: one active order per table.
   if exists (
@@ -742,12 +747,18 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_table public.tables;
-  v_order public.orders;
+  v_table      public.tables;
+  v_order      public.orders;
+  v_restaurant public.restaurants;
 begin
   select t.* into v_table from public.tables t where t.qr_token = p_qr_token;
   if v_table.id is null then
     raise exception 'Invalid or expired QR code' using errcode = 'P0002';
+  end if;
+
+  select r.* into v_restaurant from public.restaurants r where r.id = v_table.restaurant_id;
+  if not v_restaurant.is_accepting_orders then
+    raise exception 'The café is not accepting orders right now' using errcode = 'P0001';
   end if;
 
   select o.* into v_order

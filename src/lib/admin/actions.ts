@@ -410,6 +410,22 @@ export async function deleteTableAction(formData: FormData): Promise<void> {
   revalidatePath("/admin/dashboard");
 }
 
+// ---- open / closed (accepting orders) --------------------------------------
+
+export async function setAcceptingOrdersAction(
+  formData: FormData,
+): Promise<void> {
+  const ctx = await requireAdmin();
+  const accepting = formData.get("accepting") === "true";
+  const supabase = await createClient(); // RLS scopes to the owner's restaurant
+  await supabase
+    .from("restaurants")
+    .update({ is_accepting_orders: accepting })
+    .eq("id", ctx.restaurantId);
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/settings");
+}
+
 // ---- change own password ---------------------------------------------------
 
 export async function changeOwnPasswordAction(

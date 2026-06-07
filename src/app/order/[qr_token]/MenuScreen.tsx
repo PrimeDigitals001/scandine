@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ShoppingBag, ChevronRight, Plus } from "lucide-react";
+import { ShoppingBag, ChevronRight, Plus, Clock } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatINR } from "@/lib/format";
 import {
@@ -45,6 +45,7 @@ export function MenuScreen({
   data: ResolveResult;
 }) {
   const { restaurant, table, menu, active_order } = data;
+  const open = restaurant.is_accepting_orders !== false;
   const ensureToken = useCart((s) => s.ensureToken);
   const lines = useCart((s) => s.lines);
   const hydrated = useCart((s) => s.hydrated);
@@ -108,6 +109,22 @@ export function MenuScreen({
         </Link>
       )}
 
+      {/* Closed: café isn't taking orders right now */}
+      {!open && (
+        <div className="mx-4 mt-3 flex items-start gap-3 rounded-card border border-amber-300/60 bg-amber-50 px-4 py-3 md:mx-6 lg:mx-8">
+          <Clock className="size-5 shrink-0 text-amber-600" />
+          <div>
+            <p className="text-sm font-bold text-amber-900">
+              Not taking orders right now
+            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-amber-800">
+              {restaurant.name} is currently closed. You can browse the menu —
+              please order once they reopen.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Two-pane on desktop: menu (left) + live cart panel (right) */}
       <div className="lg:flex lg:items-start lg:gap-8 lg:px-8">
         <main className="min-w-0 lg:flex-1">
@@ -141,6 +158,7 @@ export function MenuScreen({
                     <ItemCard
                       key={item.id}
                       item={item}
+                      open={open}
                       baseQty={baseQty(item.id)}
                       itemQty={itemQty(item.id)}
                       onQuickAdd={() =>
@@ -165,13 +183,15 @@ export function MenuScreen({
         </main>
 
         {/* Desktop cart panel (replaces the mobile cart bar) */}
-        <aside className="sticky top-4 hidden self-start py-5 lg:block lg:w-80 lg:shrink-0">
-          <CartPanel token={token} lines={lines} subtotal={subtotal} setQty={setQty} />
-        </aside>
+        {open && (
+          <aside className="sticky top-4 hidden self-start py-5 lg:block lg:w-80 lg:shrink-0">
+            <CartPanel token={token} lines={lines} subtotal={subtotal} setQty={setQty} />
+          </aside>
+        )}
       </div>
 
       {/* Mobile cart bar — sits above the tab bar */}
-      {hydrated && count > 0 && (
+      {open && hydrated && count > 0 && (
         <div className="fixed inset-x-0 bottom-16 z-20 mx-auto w-full max-w-md px-4 pb-2 md:max-w-2xl md:px-6 lg:hidden">
           <Link
             href={`/order/${token}/cart`}
@@ -272,6 +292,7 @@ function CartPanel({
 
 function ItemCard({
   item,
+  open,
   baseQty,
   itemQty,
   onQuickAdd,
@@ -279,6 +300,7 @@ function ItemCard({
   onCustomise,
 }: {
   item: MenuItem;
+  open: boolean;
   baseQty: number;
   itemQty: number;
   onQuickAdd: () => void;
@@ -334,7 +356,7 @@ function ItemCard({
       </div>
 
       <div className="flex shrink-0 items-end">
-        {!item.is_available ? (
+        {!open ? null : !item.is_available ? (
           <span className="rounded-pill bg-surface-sunken px-2.5 py-1 text-xs font-semibold text-muted">
             Sold out
           </span>
