@@ -22,6 +22,7 @@ const BASE = process.env.BASE ?? "http://localhost:3000";
 const STAFF_EMAIL = `teststaff-${Date.now()}@scandine.test`;
 const STAFF_EMAIL2 = `teststaff2-${Date.now()}@scandine.test`;
 const MANUAL_PW = "MyKitchen-2026";
+const RESET_PW = "ResetByMe-2026";
 
 let pass = 0;
 let fail = 0;
@@ -86,14 +87,16 @@ try {
   ok("new staff signs in → /kitchen", await landsOnKitchen(c1, STAFF_EMAIL, pw1));
   await c1.close();
 
-  // owner resets the password
+  // owner resets the password to a value they type (inline editor)
   page = await owner.newPage();
   await page.goto(`${BASE}/admin/staff`, { waitUntil: "domcontentloaded" });
   const row = page.locator("li").filter({ hasText: STAFF_EMAIL });
   await row.getByRole("button", { name: "Reset" }).click();
-  await page.getByText(/New password/i).waitFor({ timeout: 12000 });
-  pw2 = grabPw(await page.content());
-  ok("owner resets the password", !!pw2 && pw2 !== pw1, pw2 ?? "no password");
+  await row.getByPlaceholder(/new password/i).fill(RESET_PW);
+  await row.getByRole("button", { name: "Set password" }).click();
+  await page.getByText(/Password updated/i).waitFor({ timeout: 12000 });
+  pw2 = RESET_PW;
+  ok("owner resets to a password they chose", pw2 !== pw1);
   await page.close();
 
   // new password works, old one doesn't

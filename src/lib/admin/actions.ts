@@ -293,6 +293,10 @@ export async function resetStaffPasswordAction(
 ): Promise<ActionState> {
   const ctx = await requireAdmin();
   const staffId = String(formData.get("staff_id"));
+  const typed = opt(formData.get("password")) ?? undefined;
+  if (typed && typed.length < 6) {
+    return { error: "Password must be at least 6 characters.", resetStaffId: staffId };
+  }
   const svc = createAdminClient();
   const { data: prof } = await svc
     .from("profiles")
@@ -300,13 +304,19 @@ export async function resetStaffPasswordAction(
     .eq("id", staffId)
     .maybeSingle();
   if (!prof || prof.restaurant_id !== ctx.restaurantId) {
-    return { error: "That staff member isn't on your team." };
+    return { error: "That staff member isn't on your team.", resetStaffId: staffId };
   }
-  const pw = tempPassword();
+  // owner can type the new password, or leave it blank to auto-generate one
+  const pw = typed ?? tempPassword();
   const { error } = await svc.auth.admin.updateUserById(staffId, { password: pw });
-  if (error) return { error: error.message };
+  if (error) return { error: error.message, resetStaffId: staffId };
   revalidatePath("/admin/staff");
-  return { ok: true, tempPassword: pw, resetStaffId: staffId };
+  return {
+    ok: true,
+    tempPassword: pw,
+    resetStaffId: staffId,
+    manualPassword: Boolean(typed),
+  };
 }
 
 export async function setStaffActiveAction(formData: FormData): Promise<void> {

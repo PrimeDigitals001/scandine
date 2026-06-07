@@ -28,6 +28,7 @@ export function StaffManager({ staff }: { staff: StaffMember[] }) {
     resetStaffPasswordAction,
     empty,
   );
+  const [resetting, setResetting] = React.useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -123,19 +124,18 @@ export function StaffManager({ staff }: { staff: StaffMember[] }) {
                     {s.is_active ? "active" : "disabled"}
                   </Badge>
 
-                  {/* reset password */}
-                  <form action={resetAction}>
-                    <input type="hidden" name="staff_id" value={s.id} />
-                    <button
-                      type="submit"
-                      disabled={resetPending}
-                      className="inline-flex items-center gap-1 rounded-control border border-hairline px-2.5 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:bg-canvas active:scale-95 disabled:opacity-50"
-                      title="Reset password"
-                    >
-                      <KeyRound className="size-3.5" />
-                      Reset
-                    </button>
-                  </form>
+                  {/* reset password — opens an inline editor */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setResetting((r) => (r === s.id ? null : s.id))
+                    }
+                    className="inline-flex items-center gap-1 rounded-control border border-hairline px-2.5 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:bg-canvas active:scale-95"
+                    title="Reset password"
+                  >
+                    <KeyRound className="size-3.5" />
+                    Reset
+                  </button>
 
                   {/* enable / disable */}
                   <form action={setStaffActiveAction}>
@@ -165,17 +165,52 @@ export function StaffManager({ staff }: { staff: StaffMember[] }) {
                   </form>
                 </div>
 
+                {/* inline "set a new password" editor */}
+                {resetting === s.id && (
+                    <form
+                      action={resetAction}
+                      className="mt-3 flex flex-wrap items-center gap-2 rounded-control bg-canvas p-2"
+                    >
+                      <input type="hidden" name="staff_id" value={s.id} />
+                      <div className="min-w-0 flex-1">
+                        <PasswordInput
+                          name="password"
+                          autoComplete="new-password"
+                          placeholder="Type a new password — or leave blank to auto-generate"
+                          minLength={6}
+                          className="h-9"
+                        />
+                      </div>
+                      <Button size="sm" type="submit" loading={resetPending}>
+                        Set password
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => setResetting(null)}
+                        className="rounded-control px-2 py-1.5 text-xs font-medium text-muted transition-colors hover:text-ink"
+                      >
+                        Cancel
+                      </button>
+                      {resetState.error && resetState.resetStaffId === s.id && (
+                        <div className="w-full">
+                          <ErrorLine text={resetState.error} />
+                        </div>
+                      )}
+                    </form>
+                  )}
+
                 {resetState.ok &&
                   resetState.resetStaffId === s.id &&
                   resetState.tempPassword && (
                     <CredBox
                       password={resetState.tempPassword}
-                      note="New password — share it, then it's gone."
+                      note={
+                        resetState.manualPassword
+                          ? "Password updated — share it with your staff."
+                          : "New password — copy it now, it won't be shown again."
+                      }
                     />
                   )}
-                {resetState.error && resetState.resetStaffId === undefined && (
-                  <ErrorLine text={resetState.error} />
-                )}
               </li>
             ))}
           </ul>
