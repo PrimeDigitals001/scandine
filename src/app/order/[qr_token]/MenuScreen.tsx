@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ShoppingBag, ChevronRight, Plus, Clock } from "lucide-react";
+import { ShoppingBag, ChevronRight, Plus, Clock, UserPlus, Check } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatINR } from "@/lib/format";
 import {
@@ -40,9 +40,11 @@ const hasOptions = (item: MenuItem) =>
 export function MenuScreen({
   token,
   data,
+  sessionToken,
 }: {
   token: string;
   data: ResolveResult;
+  sessionToken?: string;
 }) {
   const { restaurant, table, menu, active_order } = data;
   const open = restaurant.is_accepting_orders !== false;
@@ -81,12 +83,17 @@ export function MenuScreen({
     >
       {/* Header */}
       <header className="bg-brand-500 px-4 pb-5 pt-6 text-white md:px-6 lg:px-8">
-        <p className="text-xs font-medium text-white/80">
-          Table {table.table_number} · {table.capacity} seats · Dine-in
-        </p>
-        <h1 className="mt-0.5 text-2xl font-bold tracking-tight">
-          {restaurant.name}
-        </h1>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-white/80">
+              Table {table.table_number} · {table.capacity} seats · Dine-in
+            </p>
+            <h1 className="mt-0.5 truncate text-2xl font-bold tracking-tight">
+              {restaurant.name}
+            </h1>
+          </div>
+          {open && sessionToken && <ShareButton token={token} sessionToken={sessionToken} />}
+        </div>
       </header>
 
       {/* Active order banner */}
@@ -287,6 +294,40 @@ function CartPanel({
         </>
       )}
     </div>
+  );
+}
+
+function ShareButton({
+  token,
+  sessionToken,
+}: {
+  token: string;
+  sessionToken: string;
+}) {
+  const [shared, setShared] = React.useState(false);
+  async function share() {
+    const url = `${window.location.origin}/order/${token}?s=${sessionToken}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Order with me", url });
+      } else {
+        await navigator.clipboard.writeText(url);
+      }
+      setShared(true);
+      setTimeout(() => setShared(false), 1800);
+    } catch {
+      /* user dismissed the share sheet — ignore */
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={share}
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition active:scale-95"
+    >
+      {shared ? <Check className="size-3.5" /> : <UserPlus className="size-3.5" />}
+      {shared ? "Link copied" : "Invite table"}
+    </button>
   );
 }
 

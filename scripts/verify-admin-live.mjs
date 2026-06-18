@@ -50,11 +50,11 @@ if (!demo) {
     .eq("restaurant_id", RID)
     .eq("table_number", "T1")
     .single();
-  await admin.from("tables").update({ qr_token: "demo", status: "empty" }).eq("id", t1.id);
+  await admin.from("tables").update({ qr_token: "demo", status: "empty", session_token: null, session_started_at: null }).eq("id", t1.id);
   demo = t1;
 }
 await admin.from("orders").delete().neq("status", "cleared").eq("restaurant_id", RID);
-await admin.from("tables").update({ status: "empty" }).eq("restaurant_id", RID);
+await admin.from("tables").update({ status: "empty", session_token: null, session_started_at: null }).eq("restaurant_id", RID);
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -75,13 +75,16 @@ try {
 
   // let the realtime channel subscribe, then a customer orders
   await page.waitForTimeout(3000);
-  const r = await anon.rpc("resolve_table", { p_qr_token: "demo" });
+  const r = await anon.rpc("resolve_table", { p_qr_token: "demo", p_session_token: null });
   const item = r.data.menu.flatMap((c) => c.items).find((i) => i.is_available);
   const placed = await anon.rpc("place_order", {
     p_qr_token: "demo",
     p_items: [{ menu_item_id: item.id, quantity: 1 }],
+    p_session_token: r.data.session_token,
   });
   orderId = placed.data;
+  // request_bill also needs the session
+  const SESS = r.data.session_token;
 
   // the floor live-updates (no reload) within a few seconds
   let live = false;
@@ -95,7 +98,7 @@ try {
   ok("floor live-updates when a customer orders (no reload)", live, `active=${await activeOrders()}`);
 
   // customer taps "Request bill" → the owner's screen pops the alert live
-  await anon.rpc("request_bill", { p_qr_token: "demo", p_order_id: orderId });
+  await anon.rpc("request_bill", { p_qr_token: "demo", p_order_id: orderId, p_session_token: SESS });
   let toast = false;
   try {
     await page.getByText(/requested the bill/i).waitFor({ timeout: 12000 });
@@ -109,7 +112,7 @@ try {
 } finally {
   await browser.close();
   if (orderId) await admin.from("orders").delete().eq("id", orderId);
-  await admin.from("tables").update({ status: "empty" }).eq("id", demo.id);
+  await admin.from("tables").update({ status: "empty", session_token: null, session_started_at: null }).eq("id", demo.id);
 }
 
 console.log(`\n${fail === 0 ? "🎉" : "⚠️ "} ${pass} passed, ${fail} failed`);

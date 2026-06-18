@@ -196,7 +196,7 @@ try {
 } finally {
   // ---- cleanup: leave the demo café exactly as we found it ---------------
   if (cleanup.orderId) await admin.from("orders").delete().eq("id", cleanup.orderId);
-  await admin.from("tables").update({ status: "empty" }).eq("qr_token", "demo");
+  await admin.from("tables").update({ status: "empty", session_token: null, session_started_at: null }).eq("qr_token", "demo");
   if (cleanup.userId) await admin.auth.admin.deleteUser(cleanup.userId);
   if (cleanup.cafeBId) await admin.from("restaurants").delete().eq("id", cleanup.cafeBId);
 }

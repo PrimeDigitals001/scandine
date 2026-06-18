@@ -33,14 +33,15 @@ const ok = (name, cond, detail = "") => {
 // reset demo table to the known 'demo' token + empty
 const { data: t0 } = await admin.from("tables").select("id").eq("restaurant_id", "11111111-1111-1111-1111-111111111111").eq("table_number", "T1").single();
 await admin.from("orders").delete().neq("status", "cleared").eq("table_id", t0.id);
-await admin.from("tables").update({ status: "empty", qr_token: "demo" }).eq("id", t0.id);
+await admin.from("tables").update({ status: "empty", session_token: null, session_started_at: null, qr_token: "demo" }).eq("id", t0.id);
 
 // customer places an order
-const r = await anon.rpc("resolve_table", { p_qr_token: "demo" });
+const r = await anon.rpc("resolve_table", { p_qr_token: "demo", p_session_token: null });
 const item = r.data.menu.flatMap((c) => c.items).find((i) => i.is_available);
 const placed = await anon.rpc("place_order", {
   p_qr_token: "demo",
   p_items: [{ menu_item_id: item.id, quantity: 2 }],
+  p_session_token: r.data.session_token,
 });
 const orderId = placed.data;
 
@@ -105,7 +106,7 @@ try {
   await browser.close();
   // restore the demo so /order/demo keeps working
   await admin.from("orders").delete().eq("id", orderId);
-  await admin.from("tables").update({ status: "empty", qr_token: "demo" }).eq("id", t0.id);
+  await admin.from("tables").update({ status: "empty", session_token: null, session_started_at: null, qr_token: "demo" }).eq("id", t0.id);
 }
 
 console.log(`\n${fail === 0 ? "🎉" : "⚠️ "} ${pass} passed, ${fail} failed`);

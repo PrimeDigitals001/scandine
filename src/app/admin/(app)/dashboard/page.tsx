@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Armchair, ListOrdered, Receipt, IndianRupee, PauseCircle } from "lucide-react";
 import { getAdminContext } from "@/lib/admin/context";
 import { getDashboard } from "@/lib/admin/data";
+import { freeTableAction } from "@/lib/admin/actions";
 import { Card } from "@/components/ui/Card";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { formatINR } from "@/lib/format";
@@ -103,6 +104,21 @@ export default async function AdminDashboardPage() {
                   </div>
                   {t.order ? (
                     <StatusChip status={t.order.status} live />
+                  ) : t.locked ? (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-xs font-medium text-info">
+                        In use · no order yet
+                      </span>
+                      <form action={freeTableAction}>
+                        <input type="hidden" name="table_id" value={t.id} />
+                        <button
+                          type="submit"
+                          className="rounded-control border border-hairline bg-surface px-2 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-canvas active:scale-95"
+                        >
+                          Free table
+                        </button>
+                      </form>
+                    </div>
                   ) : (
                     <span className="text-sm font-medium capitalize text-muted">
                       {t.status}

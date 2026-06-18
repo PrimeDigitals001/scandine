@@ -423,6 +423,16 @@ Founder reviewed and flagged a batch of polish + two real gaps:
 - **Migrations 005 + 006 are APPLIED to the live DB** (founder ran them). `getAdminContext` now selects `is_accepting_orders` (would 400 without the column).
 - No regressions: customer-ui 14/14, admin billing 11/11, floor 4/4, staff 9/9.
 
+### Session 13 — Per-visit table session lock (security: past-link can't touch a new guest) ✅
+- **The hole (founder found it):** the qr_token is a permanent sticker, so a past guest's old `/order/<token>` link still worked on the table — they could see/add to the NEXT guest's order. **Fix = decouple identity from session:** keep qr_token permanent, add a per-visit **`tables.session_token`** (migration 007) that rotates on each claim and is released on `clear_table`. To view/modify an order you need the *current* session token.
+  - **`resolve_table(qr, session?)`** now CLAIMS a fresh session for a free table (returns it), authorises a matching token, returns `{locked:true}` to anyone else, and auto-expires an abandoned pre-order claim after 45 min. **place_order/add_items/request_bill/get_bill** all require the session token (`_check_session`). **clear_table** nulls it.
+  - **Friends join** via an **"Invite table"** share link (`/order/<token>?s=<session>`) — same session, multiple phones.
+  - **Owner Floor:** a claimed-but-no-order table shows **"In use · no order yet" + Free table** (`freeTableAction`) for abandoned claims.
+- **Customer flow reworked:** the menu now **resolves client-side** (`MenuLoader`) so it can pass the session token + show a **"Table in use"** screen. Session token lives in **localStorage + a cookie keyed by qr_token** (`lib/customer/session.ts`) so the server-rendered status/bill/cart pages can read it. **⚠️ Server pages resolve ONLY with a session cookie** — resolving without one would CLAIM a session server-side and lock the table (a real bug; bots/cold-loads). StatusScreen clears the session on the cleared state so a stale cookie can't re-claim.
+- **⚠️ Migration 007 is APPLIED** (founder ran it). It DROPS the old RPC arities and recreates them with the trailing `p_session_token` — so the deploy is coupled (old code breaks the moment the SQL runs; push immediately).
+- **Verified live:** `verify-customer-session.mjs` 12/12 (stranger locked out, friend joins via share token, **past guest's old token is dead after clear**, free-table releases). No regressions: customer-ui 14/14, admin 11/11, kitchen 8/8, open 8/8, live 4/4, print 5/5. RPC tests now thread the session (resolve→capture `session_token`→pass to place_order).
+- **Deferred:** `setup_hosted.sql` not re-synced to the 005–007 RPCs (migrations are canonical; fresh-install-from-snapshot would need them layered). Old smokes `verify-customer.mjs`/`verify-supabase.mjs` need the same session-threading if re-run.
+
 **Next — founder-driven:** set `NEXT_PUBLIC_APP_URL` in Vercel + redeploy + regenerate QRs (the last pending infra step). Then the real bottleneck is sales: demo to a café. Deferred features (order history, analytics, staff self password-change, in-app rating storage, direct ESC/POS printing) await pilot feedback.
 
 ---

@@ -7,6 +7,7 @@ import { ArrowLeft, ShoppingBag, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatINR } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
+import { getSessionToken } from "@/lib/customer/session";
 import { useCart, selectSubtotal } from "@/lib/cart/store";
 import type { ActiveOrder, CustomerRestaurant } from "@/lib/customer/types";
 import { Button } from "@/components/ui/Button";
@@ -56,16 +57,19 @@ export function CartScreen({
       item_note: l.note,
     }));
 
+    const session = getSessionToken(token);
     const res = adding
       ? await supabase.rpc("add_items_to_order", {
           p_qr_token: token,
           p_order_id: activeOrder!.id,
           p_items: items,
+          p_session_token: session,
         })
       : await supabase.rpc("place_order", {
           p_qr_token: token,
           p_items: items,
           p_table_note: tableNote.trim() || null,
+          p_session_token: session,
         });
 
     if (res.error) {

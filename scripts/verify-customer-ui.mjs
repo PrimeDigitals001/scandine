@@ -7,6 +7,27 @@
  * Run:  node scripts/verify-customer-ui.mjs
  */
 import { chromium, webkit } from "playwright";
+import { readFileSync } from "node:fs";
+import { createClient } from "@supabase/supabase-js";
+
+for (const l of readFileSync(".env.local", "utf8").split("\n")) {
+  const m = l.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+  if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, "");
+}
+const admin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { persistSession: false } },
+);
+// each runFlow is a fresh "person" scanning a free table → release any session
+async function resetDemo() {
+  const { data: t } = await admin.from("tables").select("id").eq("qr_token", "demo").single();
+  await admin.from("orders").delete().neq("status", "cleared").eq("table_id", t.id);
+  await admin
+    .from("tables")
+    .update({ status: "empty", session_token: null, session_started_at: null })
+    .eq("id", t.id);
+}
 
 const ENGINE = process.env.ENGINE === "webkit" ? webkit : chromium;
 const ENGINE_NAME = process.env.ENGINE === "webkit" ? "WebKit/Safari" : "Chromium";
@@ -24,6 +45,7 @@ const browser = await ENGINE.launch();
 
 async function runFlow(label, viewport, expectTwoCols) {
   console.log(`\n— ${label} (${viewport.width}×${viewport.height}) —`);
+  await resetDemo();
   const page = await browser.newPage({ viewport });
   const errors = [];
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));

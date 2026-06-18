@@ -30,8 +30,14 @@ const ok = (name, cond, detail = "") => {
   if (cond) pass++;
   else fail++;
 };
+// the customer's status page needs their session cookie (set on the menu)
+let SESSION = null;
 const customerStatus = async () =>
-  (await fetch(`${BASE}/order/demo/status`)).text();
+  (
+    await fetch(`${BASE}/order/demo/status`, {
+      headers: SESSION ? { Cookie: `sd_session_demo=${SESSION}` } : {},
+    })
+  ).text();
 
 // reset + place a fresh order as the customer
 const { data: table } = await admin
@@ -40,14 +46,16 @@ const { data: table } = await admin
   .eq("qr_token", "demo")
   .single();
 await admin.from("orders").delete().neq("status", "cleared").eq("table_id", table.id);
-await admin.from("tables").update({ status: "empty" }).eq("qr_token", "demo");
+await admin.from("tables").update({ status: "empty", session_token: null, session_started_at: null }).eq("qr_token", "demo");
 
-const r = await anon.rpc("resolve_table", { p_qr_token: "demo" });
+const r = await anon.rpc("resolve_table", { p_qr_token: "demo", p_session_token: null });
+SESSION = r.data.session_token;
 const item = r.data.menu.flatMap((c) => c.items).find((i) => i.is_available);
 const placed = await anon.rpc("place_order", {
   p_qr_token: "demo",
   p_items: [{ menu_item_id: item.id, quantity: 2 }],
   p_table_note: "kds test",
+  p_session_token: SESSION,
 });
 const orderId = placed.data;
 
@@ -97,7 +105,7 @@ try {
 } finally {
   await browser.close();
   await admin.from("orders").delete().eq("id", orderId);
-  await admin.from("tables").update({ status: "empty" }).eq("qr_token", "demo");
+  await admin.from("tables").update({ status: "empty", session_token: null, session_started_at: null }).eq("qr_token", "demo");
 }
 
 console.log(`\n${fail === 0 ? "🎉" : "⚠️ "} ${pass} passed, ${fail} failed`);

@@ -76,7 +76,7 @@ try {
   ok("/order/demo/bill renders", billHtml.includes("Total") || billHtml.includes("Bill"));
 } finally {
   if (orderId) await admin.from("orders").delete().eq("id", orderId);
-  await admin.from("tables").update({ status: "empty" }).eq("qr_token", "demo");
+  await admin.from("tables").update({ status: "empty", session_token: null, session_started_at: null }).eq("qr_token", "demo");
 }
 
 console.log(`\n${fail === 0 ? "🎉" : "⚠️ "} ${pass} passed, ${fail} failed`);

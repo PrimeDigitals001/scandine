@@ -35,11 +35,14 @@ const accepting = async () =>
     .data?.is_accepting_orders;
 
 const placeOrder = async () => {
-  const r = await anon.rpc("resolve_table", { p_qr_token: "demo" });
+  // free any prior session so resolve claims a fresh one, then order with it
+  await admin.from("tables").update({ session_token: null, session_started_at: null }).eq("id", t0.id);
+  const r = await anon.rpc("resolve_table", { p_qr_token: "demo", p_session_token: null });
   const item = r.data.menu.flatMap((c) => c.items).find((i) => i.is_available);
   return anon.rpc("place_order", {
     p_qr_token: "demo",
     p_items: [{ menu_item_id: item.id, quantity: 1 }],
+    p_session_token: r.data.session_token,
   });
 };
 
@@ -52,7 +55,7 @@ const { data: t0 } = await admin
   .single();
 await admin.from("restaurants").update({ is_accepting_orders: true }).eq("id", RID);
 await admin.from("orders").delete().neq("status", "cleared").eq("table_id", t0.id);
-await admin.from("tables").update({ status: "empty", qr_token: "demo" }).eq("id", t0.id);
+await admin.from("tables").update({ status: "empty", session_token: null, session_started_at: null, qr_token: "demo" }).eq("id", t0.id);
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -106,7 +109,7 @@ try {
   await browser.close();
   if (orderId) await admin.from("orders").delete().eq("id", orderId);
   await admin.from("restaurants").update({ is_accepting_orders: true }).eq("id", RID);
-  await admin.from("tables").update({ status: "empty", qr_token: "demo" }).eq("id", t0.id);
+  await admin.from("tables").update({ status: "empty", session_token: null, session_started_at: null, qr_token: "demo" }).eq("id", t0.id);
 }
 
 console.log(`\n${fail === 0 ? "🎉" : "⚠️ "} ${pass} passed, ${fail} failed`);

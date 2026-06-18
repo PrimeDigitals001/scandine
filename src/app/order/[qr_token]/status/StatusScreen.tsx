@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
+import { getSessionToken, clearSessionToken } from "@/lib/customer/session";
 import {
   ORDER_STATUS_META,
   statusIndex,
@@ -79,10 +80,18 @@ export function StatusScreen({
   );
 
   const refresh = React.useCallback(async () => {
-    const { data } = await supabase.rpc("resolve_table", { p_qr_token: token });
+    const { data } = await supabase.rpc("resolve_table", {
+      p_qr_token: token,
+      p_session_token: getSessionToken(token),
+    });
     const d = data as ResolveResult | null;
     if (d?.active_order) setOrder(d.active_order);
-    else setCleared(true);
+    else {
+      // table cleared (or session ended) → drop the session so a stale cookie
+      // can't re-claim this table later.
+      clearSessionToken(token);
+      setCleared(true);
+    }
   }, [supabase, token]);
 
   // Live updates: any change to this order (or its items) refreshes the screen.
@@ -118,7 +127,11 @@ export function StatusScreen({
 
   async function requestBill() {
     setBillRequested(true);
-    await supabase.rpc("request_bill", { p_qr_token: token, p_order_id: order.id });
+    await supabase.rpc("request_bill", {
+      p_qr_token: token,
+      p_order_id: order.id,
+      p_session_token: getSessionToken(token),
+    });
   }
 
   if (cleared) {

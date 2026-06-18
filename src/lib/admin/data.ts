@@ -11,6 +11,7 @@ export interface FloorTable {
   table_number: string;
   status: "empty" | "occupied" | "billing";
   capacity: number;
+  locked: boolean; // a customer claimed the table (session) — may have no order yet
   order: { id: string; status: OrderStatus; placed_at: string } | null;
 }
 
@@ -31,7 +32,7 @@ export async function getDashboard(): Promise<DashboardData> {
   const todayIso = startOfToday.toISOString();
 
   const [tablesRes, ordersRes, todayOrdersRes, paidRes] = await Promise.all([
-    supabase.from("tables").select("id, table_number, status, capacity").order("table_number"),
+    supabase.from("tables").select("id, table_number, status, capacity, session_token").order("table_number"),
     supabase.from("orders").select("id, table_id, status, placed_at").neq("status", "cleared"),
     supabase
       .from("orders")
@@ -53,6 +54,7 @@ export async function getDashboard(): Promise<DashboardData> {
     table_number: t.table_number,
     status: t.status,
     capacity: t.capacity,
+    locked: t.session_token != null,
     order: activeByTable.get(t.id) ?? null,
   }));
 

@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatINR } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
+import { getSessionToken } from "@/lib/customer/session";
 import type { ActiveOrder, CustomerRestaurant } from "@/lib/customer/types";
 import { Button } from "@/components/ui/Button";
 import { PriceTag } from "@/components/ui/PriceTag";
@@ -42,7 +43,11 @@ export function BillScreen({
     let active = true;
     const fetchBill = () =>
       supabase
-        .rpc("get_bill", { p_qr_token: token, p_order_id: order.id })
+        .rpc("get_bill", {
+          p_qr_token: token,
+          p_order_id: order.id,
+          p_session_token: getSessionToken(token),
+        })
         .then(({ data }) => {
           if (!active) return;
           setBill((data as Bill) ?? null);
@@ -79,7 +84,11 @@ export function BillScreen({
 
   async function requestBill() {
     setRequesting(true);
-    await supabase.rpc("request_bill", { p_qr_token: token, p_order_id: order.id });
+    await supabase.rpc("request_bill", {
+      p_qr_token: token,
+      p_order_id: order.id,
+      p_session_token: getSessionToken(token),
+    });
   }
 
   return (

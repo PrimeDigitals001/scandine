@@ -45,6 +45,6 @@ await p.screenshot({ path: "shot-status.png" });
 await p.close();
 
 if (placed.data) await admin.from("orders").delete().eq("id", placed.data);
-await admin.from("tables").update({ status: "empty" }).eq("qr_token", "demo");
+await admin.from("tables").update({ status: "empty", session_token: null, session_started_at: null }).eq("qr_token", "demo");
 await b.close();
 console.log(`screenshots saved at ${W}px`);

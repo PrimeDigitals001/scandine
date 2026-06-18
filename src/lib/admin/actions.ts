@@ -410,6 +410,19 @@ export async function deleteTableAction(formData: FormData): Promise<void> {
   revalidatePath("/admin/dashboard");
 }
 
+// Release a stuck/abandoned customer session lock (claimed a table but never
+// ordered). Frees the table so the next guest can scan + claim it.
+export async function freeTableAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const tableId = String(formData.get("table_id"));
+  const supabase = await createClient(); // RLS scopes to the owner's tables
+  await supabase
+    .from("tables")
+    .update({ session_token: null, session_started_at: null })
+    .eq("id", tableId);
+  revalidatePath("/admin/dashboard");
+}
+
 // ---- open / closed (accepting orders) --------------------------------------
 
 export async function setAcceptingOrdersAction(

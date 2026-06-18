@@ -61,6 +61,8 @@ export interface ActiveOrder {
   items: ActiveOrderItem[];
 }
 export interface ResolveResult {
+  locked?: boolean;
+  session_token?: string;
   restaurant: CustomerRestaurant;
   table: CustomerTable;
   menu: MenuCategory[];
