@@ -21,7 +21,8 @@ const anon = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth
 let pass = 0, fail = 0;
 const ok = (n, c, d = "") => {
   console.log(`${c ? "✅" : "❌"}  ${n}${d ? `  —  ${d}` : ""}`);
-  c ? pass++ : fail++;
+  if (c) pass++;
+  else fail++;
 };
 
 const SLUG = "test-food-court-verify";

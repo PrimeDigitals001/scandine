@@ -45,19 +45,23 @@ export default async function CourtPage({
   const isPickup = fc.access.mode === "pickup";
 
   return (
-    <div className="mx-auto w-full max-w-md pb-10 md:max-w-2xl">
+    <div className="w-full pb-12">
       <header className="bg-brand-500 px-4 pb-6 pt-7 text-white md:px-6">
-        <p className="text-xs font-medium text-white/80">
-          {isPickup ? "Order & pick up" : `Dine-in · ${fc.access.label}`}
-        </p>
-        <h1 className="mt-0.5 text-2xl font-bold tracking-tight">{fc.food_court.name}</h1>
-        <p className="mt-1 text-sm text-white/85">
-          Choose a store to see its menu and order. You can order from more than
-          one — each comes separately.
-        </p>
+        <div className="mx-auto max-w-5xl">
+          <p className="text-xs font-medium text-white/80">
+            {isPickup ? "Order & pick up" : `Dine-in · ${fc.access.label}`}
+          </p>
+          <h1 className="mt-0.5 text-2xl font-bold tracking-tight md:text-3xl">
+            {fc.food_court.name}
+          </h1>
+          <p className="mt-1 max-w-prose text-sm text-white/85">
+            Choose a store to see its menu and order. You can order from more
+            than one — each comes separately.
+          </p>
+        </div>
       </header>
 
-      <div className="px-4 py-5 md:px-6">
+      <div className="mx-auto max-w-5xl px-4 py-5 md:px-6">
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
           {fc.stores.length} {fc.stores.length === 1 ? "store" : "stores"}
         </h2>
@@ -69,7 +73,7 @@ export default async function CourtPage({
             description="This food court hasn't added any stores. Please check back soon."
           />
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {fc.stores.map((s) => {
               const open = s.is_accepting_orders;
               const inner = (

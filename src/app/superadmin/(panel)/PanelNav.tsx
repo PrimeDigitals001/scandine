@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Store } from "lucide-react";
+import { LayoutDashboard, Store, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const links = [
   { href: "/superadmin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/superadmin/restaurants", label: "Cafés", icon: Store },
+  { href: "/superadmin/food-courts", label: "Food courts", icon: UtensilsCrossed },
 ];
 
 export function PanelNav() {
