@@ -112,6 +112,27 @@ const itemSchema = z.object({
 });
 
 const IMG_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const VIDEO_TYPES = ["video/mp4", "video/webm"];
+
+// Upload a file to a public bucket under the caller's restaurant folder; returns
+// its public URL (or { error }). Caller must have confirmed admin first.
+async function uploadToBucket(
+  restaurantId: string,
+  bucket: string,
+  file: File,
+  ext: string,
+): Promise<{ url?: string; error?: string }> {
+  const svc = createAdminClient();
+  const path = `${restaurantId}/${randomBytes(8).toString("hex")}.${ext}`;
+  const { error } = await svc.storage
+    .from(bucket)
+    .upload(path, Buffer.from(await file.arrayBuffer()), {
+      contentType: file.type,
+      upsert: true,
+    });
+  if (error) return { error: error.message };
+  return { url: svc.storage.from(bucket).getPublicUrl(path).data.publicUrl };
+}
 
 export async function saveItemAction(
   _prev: ActionState,
@@ -131,29 +152,38 @@ export async function saveItemAction(
   // restaurant_id comes from the caller's profile (needed for INSERT under RLS)
   const restaurantId = String(formData.get("restaurant_id"));
 
-  // Optional photo upload → public Storage bucket, scoped to the caller's café.
+  const image = formData.get("image");
+  const video = formData.get("video");
+  const wantsUpload =
+    (image instanceof File && image.size > 0) ||
+    (video instanceof File && video.size > 0);
+  const ctx = wantsUpload ? await requireAdmin() : null;
+
+  // Optional photo → public `menu-images`.
   let imageUrl: string | undefined;
-  const file = formData.get("image");
-  if (file instanceof File && file.size > 0) {
-    if (file.size > 5 * 1024 * 1024) {
-      return { error: "Image must be under 5 MB." };
-    }
-    if (!IMG_TYPES.includes(file.type)) {
+  if (image instanceof File && image.size > 0) {
+    if (image.size > 5 * 1024 * 1024) return { error: "Image must be under 5 MB." };
+    if (!IMG_TYPES.includes(image.type)) {
       return { error: "Image must be a PNG, JPG, or WebP." };
     }
-    const ctx = await requireAdmin(); // confirm admin before a privileged upload
-    const svc = createAdminClient();
     const ext =
-      file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-    const path = `${ctx.restaurantId}/${randomBytes(8).toString("hex")}.${ext}`;
-    const { error: upErr } = await svc.storage
-      .from("menu-images")
-      .upload(path, Buffer.from(await file.arrayBuffer()), {
-        contentType: file.type,
-        upsert: true,
-      });
-    if (upErr) return { error: upErr.message };
-    imageUrl = svc.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
+      image.type === "image/png" ? "png" : image.type === "image/webp" ? "webp" : "jpg";
+    const up = await uploadToBucket(ctx!.restaurantId, "menu-images", image, ext);
+    if (up.error) return { error: up.error };
+    imageUrl = up.url;
+  }
+
+  // Optional short video → public `menu-videos` (plays instead of the photo).
+  let videoUrl: string | undefined;
+  if (video instanceof File && video.size > 0) {
+    if (video.size > 20 * 1024 * 1024) return { error: "Video must be under 20 MB." };
+    if (!VIDEO_TYPES.includes(video.type)) {
+      return { error: "Video must be an MP4 or WebM." };
+    }
+    const ext = video.type === "video/webm" ? "webm" : "mp4";
+    const up = await uploadToBucket(ctx!.restaurantId, "menu-videos", video, ext);
+    if (up.error) return { error: up.error };
+    videoUrl = up.url;
   }
 
   const row: Record<string, unknown> = {
@@ -164,9 +194,11 @@ export async function saveItemAction(
     price: parsed.data.price,
     is_veg: formData.get("is_veg") === "on",
     is_available: formData.get("is_available") === "on",
+    is_daily_special: formData.get("is_daily_special") === "on",
   };
-  // only overwrite the photo when a new one was uploaded
+  // only overwrite media when a new file was uploaded
   if (imageUrl !== undefined) row.image_url = imageUrl;
+  if (videoUrl !== undefined) row.video_url = videoUrl;
 
   const { error } = id
     ? await supabase.from("menu_items").update(row).eq("id", id)

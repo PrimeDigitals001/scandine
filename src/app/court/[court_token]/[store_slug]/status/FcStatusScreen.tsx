@@ -10,6 +10,7 @@ import { getFcOrder, clearFcOrder, removeCourtOrder } from "@/lib/customer/fcSes
 import { ORDER_STATUS_META, statusIndex, type OrderStatus } from "@/lib/orderStatus";
 import type { FcStoreResolve, FcActiveOrder } from "@/lib/customer/fcTypes";
 import { Button } from "@/components/ui/Button";
+import { DishReviewSection } from "@/components/customer/DishReviewSection";
 import { PriceTag } from "@/components/ui/PriceTag";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -224,6 +225,15 @@ export function FcStatusScreen({
               ))}
             </ul>
           </div>
+        )}
+
+        {/* rate dishes — once served */}
+        {order && (order.status === "served" || order.status === "billed") && (
+          <DishReviewSection
+            orderId={order.id}
+            items={order.items}
+            sessionToken={ptr.sessionToken}
+          />
         )}
 
         {/* bill */}

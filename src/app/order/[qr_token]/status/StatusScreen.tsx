@@ -31,6 +31,7 @@ import type {
   ResolveResult,
 } from "@/lib/customer/types";
 import { Button, buttonVariants } from "@/components/ui/Button";
+import { DishReviewSection } from "@/components/customer/DishReviewSection";
 
 const TIMELINE: OrderStatus[] = [
   "placed",
@@ -278,6 +279,17 @@ export function StatusScreen({
         )}
         </div>
       </div>
+
+      {/* Rate your dishes — once served */}
+      {(order.status === "served" || order.status === "billed") && (
+        <div className="px-4 pb-2 lg:px-8">
+          <DishReviewSection
+            orderId={order.id}
+            items={order.items}
+            sessionToken={getSessionToken(token)}
+          />
+        </div>
+      )}
 
       {/* Sticky actions */}
       <div className="fixed inset-x-0 bottom-16 z-20 mx-auto w-full max-w-md border-t border-hairline bg-surface/95 px-4 pb-3 pt-3 backdrop-blur md:max-w-2xl lg:max-w-4xl">

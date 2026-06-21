@@ -22,19 +22,8 @@ import { Pill } from "@/components/ui/Pill";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { buttonVariants } from "@/components/ui/Button";
 import { ItemSheet } from "@/app/order/[qr_token]/ItemSheet";
+import { DishThumb, DishBadges, RatingPill } from "@/components/ui/DishExtras";
 
-const GRADIENTS = [
-  "from-brand-100 to-brand-200",
-  "from-amber-100 to-orange-100",
-  "from-rose-100 to-orange-100",
-  "from-emerald-100 to-teal-100",
-  "from-yellow-100 to-amber-100",
-];
-const gradientFor = (id: string) => {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i)) % GRADIENTS.length;
-  return GRADIENTS[h];
-};
 const hasOptions = (it: MenuItem) => it.variants.length > 0 || it.addons.length > 0;
 
 export function FcMenuScreen({
@@ -170,25 +159,7 @@ export function FcMenuScreen({
                           !item.is_available && "opacity-60",
                         )}
                       >
-                        {item.image_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={item.image_url}
-                            alt=""
-                            loading="lazy"
-                            className="size-20 shrink-0 rounded-card object-cover"
-                          />
-                        ) : (
-                          <div
-                            className={cn(
-                              "grid size-20 shrink-0 place-items-center rounded-card bg-gradient-to-br text-2xl font-bold text-brand-300",
-                              gradientFor(item.id),
-                            )}
-                            aria-hidden="true"
-                          >
-                            {item.name.charAt(0)}
-                          </div>
-                        )}
+                        <DishThumb item={item} />
                         <div className="flex min-w-0 flex-1 flex-col">
                           <div className="flex items-center gap-1.5">
                             <VegDot veg={item.is_veg} size={13} />
@@ -196,16 +167,22 @@ export function FcMenuScreen({
                               {item.name}
                             </h3>
                           </div>
+                          {(item.is_daily_special || item.is_bestseller) && (
+                            <div className="mt-1 flex flex-wrap items-center gap-1">
+                              <DishBadges item={item} />
+                            </div>
+                          )}
                           {item.description && (
                             <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted">
                               {item.description}
                             </p>
                           )}
-                          <div className="mt-auto flex items-center gap-1 pt-1.5">
+                          <div className="mt-auto flex items-center gap-2 pt-1.5">
                             {item.variants.length > 0 && (
                               <span className="text-xs text-muted">from</span>
                             )}
                             <PriceTag amount={item.price} size="sm" />
+                            <RatingPill item={item} />
                           </div>
                         </div>
                         <div className="flex shrink-0 items-end">

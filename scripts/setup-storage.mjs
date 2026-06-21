@@ -1,5 +1,7 @@
 /**
- * ScanDine — create the public `menu-images` Storage bucket on hosted Supabase.
+ * ScanDine — create the public Storage buckets on hosted Supabase:
+ *   menu-images  — dish photos (png/jpg/webp, ≤5 MB)
+ *   menu-videos  — short dish clips (mp4/webm, ≤20 MB) shown instead of the photo
  * Idempotent: safe to run repeatedly. Run once after setting up the project.
  *
  * Run:  node scripts/setup-storage.mjs
@@ -18,25 +20,38 @@ const svc = createClient(
   { auth: { persistSession: false } },
 );
 
-const BUCKET = "menu-images";
-const { data: buckets, error: lErr } = await svc.storage.listBuckets();
+const BUCKETS = [
+  {
+    name: "menu-images",
+    fileSizeLimit: "5MB",
+    allowedMimeTypes: ["image/png", "image/jpeg", "image/webp"],
+  },
+  {
+    name: "menu-videos",
+    fileSizeLimit: "20MB",
+    allowedMimeTypes: ["video/mp4", "video/webm"],
+  },
+];
+
+const { data: existing, error: lErr } = await svc.storage.listBuckets();
 if (lErr) {
   console.error("listBuckets failed:", lErr.message);
   process.exit(1);
 }
 
-if (buckets?.some((b) => b.name === BUCKET)) {
-  console.log(`✅ bucket "${BUCKET}" already exists`);
-  process.exit(0);
+for (const b of BUCKETS) {
+  if (existing?.some((e) => e.name === b.name)) {
+    console.log(`✅ bucket "${b.name}" already exists`);
+    continue;
+  }
+  const { error } = await svc.storage.createBucket(b.name, {
+    public: true,
+    fileSizeLimit: b.fileSizeLimit,
+    allowedMimeTypes: b.allowedMimeTypes,
+  });
+  if (error) {
+    console.error(`createBucket "${b.name}" failed:`, error.message);
+    process.exit(1);
+  }
+  console.log(`✅ created public bucket "${b.name}"`);
 }
-
-const { error } = await svc.storage.createBucket(BUCKET, {
-  public: true,
-  fileSizeLimit: "5MB",
-  allowedMimeTypes: ["image/png", "image/jpeg", "image/webp"],
-});
-if (error) {
-  console.error("createBucket failed:", error.message);
-  process.exit(1);
-}
-console.log(`✅ created public bucket "${BUCKET}"`);

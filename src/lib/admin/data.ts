@@ -156,6 +156,8 @@ export interface MenuItemRow {
   is_veg: boolean;
   is_available: boolean;
   image_url: string | null;
+  video_url: string | null;
+  is_daily_special: boolean;
   sort_order: number;
 }
 
@@ -171,10 +173,80 @@ export async function getMenu(): Promise<{
       .order("sort_order"),
     supabase
       .from("menu_items")
-      .select("id, category_id, name, description, price, is_veg, is_available, image_url, sort_order")
+      .select(
+        "id, category_id, name, description, price, is_veg, is_available, image_url, video_url, is_daily_special, sort_order",
+      )
       .order("sort_order"),
   ]);
   return { categories: cats.data ?? [], items: items.data ?? [] };
+}
+
+// ---- sales report (honest, complete — for the owner's books / CA) ----------
+export interface SalesByMethod {
+  method: "cash" | "upi" | "card";
+  count: number;
+  subtotal: number;
+  gst: number;
+  discount: number;
+  total: number;
+}
+export interface SalesReport {
+  byMethod: SalesByMethod[];
+  totals: { count: number; subtotal: number; gst: number; discount: number; total: number };
+  topItems: { name: string; qty: number; revenue: number }[];
+}
+
+export async function getSalesReport(fromIso: string, toIso: string): Promise<SalesReport> {
+  const supabase = await createClient(); // RLS scopes bills/order_items to this café
+  const { data: bills } = await supabase
+    .from("bills")
+    .select("order_id, subtotal, sgst, cgst, discount, total, payment_method, paid_at")
+    .neq("payment_method", "pending")
+    .not("paid_at", "is", null)
+    .gte("paid_at", fromIso)
+    .lte("paid_at", toIso);
+
+  const methods: SalesByMethod["method"][] = ["cash", "upi", "card"];
+  const agg = new Map<string, SalesByMethod>(
+    methods.map((m) => [m, { method: m, count: 0, subtotal: 0, gst: 0, discount: 0, total: 0 }]),
+  );
+  const totals = { count: 0, subtotal: 0, gst: 0, discount: 0, total: 0 };
+  const orderIds: string[] = [];
+  for (const b of bills ?? []) {
+    const m = agg.get(b.payment_method);
+    if (!m) continue;
+    const gst = Number(b.sgst) + Number(b.cgst);
+    m.count += 1;
+    m.subtotal += Number(b.subtotal);
+    m.gst += gst;
+    m.discount += Number(b.discount);
+    m.total += Number(b.total);
+    totals.count += 1;
+    totals.subtotal += Number(b.subtotal);
+    totals.gst += gst;
+    totals.discount += Number(b.discount);
+    totals.total += Number(b.total);
+    orderIds.push(b.order_id);
+  }
+
+  // top items sold in those (paid) orders
+  const topItems: { name: string; qty: number; revenue: number }[] = [];
+  if (orderIds.length > 0) {
+    const { data: items } = await supabase
+      .from("order_items")
+      .select("name_snapshot, quantity, unit_price, order_id")
+      .in("order_id", orderIds);
+    const byName = new Map<string, { name: string; qty: number; revenue: number }>();
+    for (const it of items ?? []) {
+      const cur = byName.get(it.name_snapshot) ?? { name: it.name_snapshot, qty: 0, revenue: 0 };
+      cur.qty += it.quantity;
+      cur.revenue += Number(it.unit_price) * it.quantity;
+      byName.set(it.name_snapshot, cur);
+    }
+    topItems.push(...[...byName.values()].sort((a, b) => b.qty - a.qty).slice(0, 10));
+  }
+
+  return { byMethod: [...agg.values()], totals, topItems };
 }
 
 export interface StaffMember {

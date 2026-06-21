@@ -35,8 +35,11 @@ if (error) {
   process.exit(1);
 }
 
+// attach only restaurants that actually have a menu (skip empty/experiment ones)
+const { data: withMenu } = await svc.from("menu_items").select("restaurant_id");
+const menuIds = [...new Set((withMenu ?? []).map((m) => m.restaurant_id))];
 const { data: rests } = await svc
-  .from("restaurants").select("id, name").eq("is_active", true);
+  .from("restaurants").select("id, name").in("id", menuIds).eq("is_active", true);
 for (const r of rests) {
   await svc.from("restaurants").update({ food_court_id: court.id }).eq("id", r.id);
 }

@@ -39,7 +39,10 @@ const orderIds = [];
 try {
   // ---- setup: court over the DEMO café (has an admin) + a second store + a seat
   const { data: ff } = await svc.from("restaurants").select("id, slug").eq("slug", "friends-fries-cafe").single();
-  const { data: other } = await svc.from("restaurants").select("id, slug").neq("id", ff.id).eq("is_active", true).limit(1).single();
+  // pick a SECOND store that actually has a menu (skip empty experiment cafés)
+  const { data: withMenu } = await svc.from("menu_items").select("restaurant_id");
+  const menuIds = [...new Set((withMenu ?? []).map((m) => m.restaurant_id))].filter((id) => id !== ff.id);
+  const { data: other } = await svc.from("restaurants").select("id, slug").in("id", menuIds).eq("is_active", true).limit(1).single();
   await svc.from("food_courts").delete().eq("slug", SLUG);
   const { data: court } = await svc.from("food_courts").insert({ name: "Shared Verify Court", slug: SLUG }).select().single();
   courtId = court.id;
@@ -117,7 +120,9 @@ try {
 } catch (e) {
   ok("shared-table flow crashed", false, e.message);
 } finally {
-  if (orderIds.length) await svc.from("orders").delete().in("id", orderIds);
+  // delete ALL the court's orders first (deleting a court can't null their
+  // food_court_id — that violates orders_anchor_chk), then the court.
+  if (courtId) await svc.from("orders").delete().eq("food_court_id", courtId);
   for (const id of attached) await svc.from("restaurants").update({ food_court_id: null }).eq("id", id);
   if (courtId) await svc.from("food_courts").delete().eq("id", courtId); // cascades the seat
   console.log("🧹 cleaned up shared-table test court + orders");

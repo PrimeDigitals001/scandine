@@ -268,14 +268,24 @@ export async function resetAdminPasswordAction(
   await requireSuperAdmin();
   const userId = String(formData.get("user_id"));
   const restaurantId = String(formData.get("restaurant_id"));
+  const typed = opt(formData.get("password")) ?? undefined;
+  if (typed && typed.length < 6) {
+    return { error: "Password must be at least 6 characters.", resetUserId: userId };
+  }
 
   const admin = createAdminClient();
-  const newPassword = `Cafe-${randomBytes(4).toString("hex")}`;
+  // operator can type a password, or leave it blank to auto-generate one
+  const newPassword = typed ?? `Cafe-${randomBytes(4).toString("hex")}`;
   const { error } = await admin.auth.admin.updateUserById(userId, {
     password: newPassword,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: error.message, resetUserId: userId };
 
   revalidatePath(`/superadmin/restaurants/${restaurantId}`);
-  return { ok: true, tempPassword: newPassword, resetUserId: userId };
+  return {
+    ok: true,
+    tempPassword: newPassword,
+    resetUserId: userId,
+    manualPassword: Boolean(typed),
+  };
 }

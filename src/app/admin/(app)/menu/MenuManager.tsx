@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import { Plus, Pencil, Trash2, AlertCircle, ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertCircle, ImageIcon, Video, Sparkles } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
   saveItemAction,
@@ -26,7 +26,9 @@ interface Draft {
   price: string;
   is_veg: boolean;
   is_available: boolean;
+  is_daily_special: boolean;
   image_url: string;
+  video_url: string;
 }
 
 const empty: ActionState = {};
@@ -48,11 +50,14 @@ export function MenuManager({
     price: "",
     is_veg: true,
     is_available: true,
+    is_daily_special: false,
     image_url: "",
+    video_url: "",
   });
 
   const [draft, setDraft] = React.useState<Draft>(blank);
   const [imgPreview, setImgPreview] = React.useState<string | null>(null);
+  const [videoName, setVideoName] = React.useState<string | null>(null);
   const [saveState, saveAction, savePending] = useActionState(saveItemAction, empty);
   const [catState, catAction, catPending] = useActionState(createCategoryAction, empty);
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
@@ -63,6 +68,7 @@ export function MenuManager({
       if (prev) URL.revokeObjectURL(prev);
       return null;
     });
+    setVideoName(null);
     setDraft(d);
   };
   const onPickImage = (file: File | undefined) => {
@@ -131,6 +137,36 @@ export function MenuManager({
                   onChange={(e) => onPickImage(e.target.files?.[0])}
                   className="block w-full text-sm text-muted file:mr-3 file:cursor-pointer file:rounded-control file:border-0 file:bg-ink file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
                 />
+              </div>
+            </Field>
+
+            {/* Video (optional) — plays instead of the photo for customers */}
+            <Field
+              label="Video (optional)"
+              htmlFor="video"
+              hint="MP4 or WebM · up to 20 MB. A short looping clip shown in place of the photo."
+            >
+              <div className="flex items-center gap-3">
+                <div className="grid size-16 shrink-0 place-items-center rounded-control border border-dashed border-hairline text-faint">
+                  <Video className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <input
+                    id="video"
+                    name="video"
+                    type="file"
+                    accept="video/mp4,video/webm"
+                    onChange={(e) => setVideoName(e.target.files?.[0]?.name ?? null)}
+                    className="block w-full text-sm text-muted file:mr-3 file:cursor-pointer file:rounded-control file:border-0 file:bg-surface-sunken file:px-3 file:py-2 file:text-sm file:font-semibold file:text-ink"
+                  />
+                  <p className="mt-1 truncate text-[11px] text-faint">
+                    {videoName
+                      ? videoName
+                      : draft.video_url
+                        ? "A video is on file — pick a new one to replace it."
+                        : "No video yet."}
+                  </p>
+                </div>
               </div>
             </Field>
 
@@ -204,6 +240,16 @@ export function MenuManager({
                   />
                   Available
                 </label>
+                <label className="flex items-center gap-2 text-sm font-medium text-ink-soft">
+                  <input
+                    type="checkbox"
+                    name="is_daily_special"
+                    checked={draft.is_daily_special}
+                    onChange={(e) => set({ is_daily_special: e.target.checked })}
+                    className="size-4 accent-brand-500"
+                  />
+                  Today&apos;s special
+                </label>
               </div>
             </div>
 
@@ -258,8 +304,16 @@ export function MenuManager({
                     ) : null}
                     <VegDot veg={it.is_veg} size={14} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-ink">
+                      <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-ink">
                         {it.name}
+                        {it.is_daily_special && (
+                          <span className="inline-flex shrink-0 items-center gap-0.5 rounded-pill bg-brand-50 px-1.5 py-0.5 text-[10px] font-bold text-brand-600">
+                            <Sparkles className="size-3" /> Special
+                          </span>
+                        )}
+                        {it.video_url && (
+                          <Video className="size-3.5 shrink-0 text-muted" aria-label="Has a video" />
+                        )}
                       </p>
                       {it.description && (
                         <p className="truncate text-xs text-muted">
@@ -298,7 +352,9 @@ export function MenuManager({
                           price: String(it.price),
                           is_veg: it.is_veg,
                           is_available: it.is_available,
+                          is_daily_special: it.is_daily_special,
                           image_url: it.image_url ?? "",
+                          video_url: it.video_url ?? "",
                         })
                       }
                       className="grid size-8 place-items-center rounded-control text-muted transition-colors hover:bg-canvas hover:text-ink active:scale-95"

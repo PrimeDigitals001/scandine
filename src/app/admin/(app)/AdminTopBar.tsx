@@ -10,6 +10,7 @@ import {
   Grid3x3,
   Users,
   Settings,
+  BarChart3,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -18,6 +19,7 @@ const links = [
   { href: "/admin/dashboard", label: "Floor", icon: LayoutDashboard },
   { href: "/admin/billing", label: "Billing", icon: Receipt },
   { href: "/admin/menu", label: "Menu", icon: BookOpen },
+  { href: "/admin/reports", label: "Reports", icon: BarChart3 },
   { href: "/admin/tables", label: "Tables", icon: Grid3x3 },
   { href: "/admin/staff", label: "Staff", icon: Users },
   { href: "/admin/settings", label: "Settings", icon: Settings },

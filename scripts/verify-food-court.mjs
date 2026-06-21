@@ -31,9 +31,11 @@ const attached = []; // restaurant ids we set food_court_id on (to restore)
 const orderIds = [];
 
 try {
-  // ---- setup: take the 2 existing restaurants, group them under a test court
+  // ---- setup: group 2 restaurants that actually HAVE a menu under a test court
+  const { data: withMenu } = await svc.from("menu_items").select("restaurant_id");
+  const menuIds = [...new Set((withMenu ?? []).map((m) => m.restaurant_id))];
   const { data: rests } = await svc
-    .from("restaurants").select("id, slug, name").eq("is_active", true).limit(2);
+    .from("restaurants").select("id, slug, name").in("id", menuIds).eq("is_active", true).limit(2);
   if (!rests || rests.length < 2) {
     ok("need 2 restaurants to test a food court", false, `found ${rests?.length ?? 0}`);
     process.exit(1);
@@ -116,8 +118,9 @@ try {
 } catch (e) {
   ok("food-court flow crashed", false, e.message);
 } finally {
-  // ---- cleanup: delete test orders, detach restaurants, delete the court
-  if (orderIds.length) await svc.from("orders").delete().in("id", orderIds);
+  // ---- cleanup: delete the court's orders (can't null food_court_id — anchor
+  // check), detach restaurants, then delete the court.
+  if (courtId) await svc.from("orders").delete().eq("food_court_id", courtId);
   for (const id of attached) await svc.from("restaurants").update({ food_court_id: null }).eq("id", id);
   if (courtId) await svc.from("food_courts").delete().eq("id", courtId);
   console.log("🧹 cleaned up test court + orders");

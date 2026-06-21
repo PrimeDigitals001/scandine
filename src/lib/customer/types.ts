@@ -16,8 +16,13 @@ export interface MenuItem {
   description: string | null;
   price: number;
   image_url: string | null;
+  video_url: string | null;
   is_veg: boolean;
   is_available: boolean;
+  is_daily_special: boolean;
+  is_bestseller?: boolean;
+  avg_rating?: number | null;
+  rating_count?: number;
   addons: MenuAddon[];
   variants: MenuVariant[];
   sort_order: number;
@@ -52,6 +57,7 @@ export interface ActiveOrderItem {
   variant: MenuVariant | null;
   item_note: string | null;
   status: "pending" | "cooking" | "ready";
+  menu_item_id: string | null;
 }
 export interface ActiveOrder {
   id: string;
