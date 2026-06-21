@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ShoppingBag, ChevronRight, Plus, Clock, ArrowLeft } from "lucide-react";
+import { ShoppingBag, ChevronRight, Plus, Clock, ArrowLeft, UserPlus, Check } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatINR } from "@/lib/format";
 import {
@@ -76,21 +76,26 @@ export function FcMenuScreen({
     >
       {/* header (full-bleed; content centered) */}
       <header className="bg-brand-500 px-4 pb-5 pt-6 text-white md:px-6">
-        <div className="mx-auto max-w-6xl">
-          <Link
-            href={`/court/${token}`}
-            className="mb-2 inline-flex items-center gap-1 text-xs font-medium text-white/85"
-          >
-            <ArrowLeft className="size-3.5" /> {food_court.name}
-          </Link>
-          <h1 className="truncate text-2xl font-bold tracking-tight md:text-3xl">
-            {restaurant.name}
-          </h1>
-          <p className="mt-0.5 text-xs font-medium text-white/80">
-            {data.mode === "pickup"
-              ? "Order & pick up at the counter"
-              : `Dine-in · ${data.access.label}`}
-          </p>
+        <div className="mx-auto flex max-w-6xl items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Link
+              href={`/court/${token}`}
+              className="mb-2 inline-flex items-center gap-1 text-xs font-medium text-white/85"
+            >
+              <ArrowLeft className="size-3.5" /> {food_court.name}
+            </Link>
+            <h1 className="truncate text-2xl font-bold tracking-tight md:text-3xl">
+              {restaurant.name}
+            </h1>
+            <p className="mt-0.5 text-xs font-medium text-white/80">
+              {data.mode === "pickup"
+                ? "Order & pick up at the counter"
+                : `Dine-in · ${data.access.label}`}
+            </p>
+          </div>
+          {data.mode === "shared_table" && data.session_token && (
+            <ShareButton token={token} session={data.session_token} />
+          )}
         </div>
       </header>
 
@@ -308,6 +313,31 @@ export function FcMenuScreen({
         />
       )}
     </div>
+  );
+}
+
+function ShareButton({ token, session }: { token: string; session: string }) {
+  const [shared, setShared] = React.useState(false);
+  async function share() {
+    const url = `${window.location.origin}/court/${token}?s=${session}`;
+    try {
+      if (navigator.share) await navigator.share({ title: "Order with me", url });
+      else await navigator.clipboard.writeText(url);
+      setShared(true);
+      setTimeout(() => setShared(false), 1800);
+    } catch {
+      /* dismissed — ignore */
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={share}
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition active:scale-95"
+    >
+      {shared ? <Check className="size-3.5" /> : <UserPlus className="size-3.5" />}
+      {shared ? "Link copied" : "Invite table"}
+    </button>
   );
 }
 

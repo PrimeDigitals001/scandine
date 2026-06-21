@@ -73,7 +73,18 @@ export async function confirmPaymentAction(
 export async function clearTableAction(formData: FormData): Promise<void> {
   const orderId = String(formData.get("order_id"));
   const supabase = await createClient();
-  await supabase.rpc("clear_table", { p_order_id: orderId });
+  // Food-court orders clear via clear_fc_order (releases a shared seat only when
+  // the last store's order at it clears). Single-café orders use clear_table.
+  const { data: o } = await supabase
+    .from("orders")
+    .select("food_court_id")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (o?.food_court_id) {
+    await supabase.rpc("clear_fc_order", { p_order_id: orderId });
+  } else {
+    await supabase.rpc("clear_table", { p_order_id: orderId });
+  }
   revalidatePath("/admin/billing");
   revalidatePath("/admin/dashboard");
 }

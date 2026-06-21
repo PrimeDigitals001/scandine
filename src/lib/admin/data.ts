@@ -96,6 +96,8 @@ export interface BillingOrder {
   table_note: string | null;
   placed_at: string;
   table_number: string;
+  food_court_id: string | null;
+  pickup_number: number | null;
   items: BillingItem[];
   bill: BillingBill | null;
 }
@@ -105,7 +107,7 @@ export async function getBillingOrders(): Promise<BillingOrder[]> {
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, status, table_note, placed_at, tables(table_number), order_items(id, name_snapshot, quantity, unit_price), bills(id, subtotal, sgst, cgst, discount, total, payment_method, paid_at)",
+      "id, status, table_note, placed_at, food_court_id, pickup_number, tables(table_number), order_items(id, name_snapshot, quantity, unit_price), bills(id, subtotal, sgst, cgst, discount, total, payment_method, paid_at)",
     )
     .neq("status", "cleared")
     .order("placed_at", { ascending: true });
@@ -116,6 +118,8 @@ export async function getBillingOrders(): Promise<BillingOrder[]> {
       status: OrderStatus;
       table_note: string | null;
       placed_at: string;
+      food_court_id: string | null;
+      pickup_number: number | null;
       tables: { table_number: string } | { table_number: string }[] | null;
       order_items: BillingItem[];
       bills: BillingBill | BillingBill[] | null;
@@ -128,6 +132,8 @@ export async function getBillingOrders(): Promise<BillingOrder[]> {
         table_note: o.table_note,
         placed_at: o.placed_at,
         table_number: table?.table_number ?? "—",
+        food_court_id: o.food_court_id,
+        pickup_number: o.pickup_number,
         items: o.order_items ?? [],
         bill: bill ?? null,
       };

@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Store, ChevronRight, QrCode, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { FcResolve } from "@/lib/customer/fcTypes";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SeatJoin } from "./SeatJoin";
 
 const GRADIENTS = [
   "from-brand-100 to-brand-200",
@@ -46,6 +48,9 @@ export default async function CourtPage({
 
   return (
     <div className="w-full pb-12">
+      <Suspense fallback={null}>
+        <SeatJoin token={court_token} />
+      </Suspense>
       <header className="bg-brand-500 px-4 pb-6 pt-7 text-white md:px-6">
         <div className="mx-auto max-w-5xl">
           <p className="text-xs font-medium text-white/80">

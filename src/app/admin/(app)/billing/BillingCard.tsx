@@ -140,7 +140,11 @@ ${bill && paid ? `<div class="pay">Paid via ${esc(bill.payment_method)}</div>` :
       {/* header */}
       <div className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-3">
         <span className="text-lg font-bold tracking-tight text-ink">
-          Table {order.table_number}
+          {order.food_court_id
+            ? order.pickup_number != null
+              ? `Food court · pickup #${order.pickup_number}`
+              : "Food court · dine-in"
+            : `Table ${order.table_number}`}
         </span>
         <StatusChip status={order.status} short />
       </div>
