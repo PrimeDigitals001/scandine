@@ -4,7 +4,7 @@ import * as React from "react";
 import { X, Check } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatINR } from "@/lib/format";
-import { useCart } from "@/lib/cart/store";
+import { useCart, type NewLine } from "@/lib/cart/store";
 import type { MenuItem, MenuAddon, MenuVariant } from "@/lib/customer/types";
 import { Button } from "@/components/ui/Button";
 import { QtyStepper } from "@/components/ui/QtyStepper";
@@ -13,11 +13,16 @@ import { VegDot } from "@/components/ui/VegDot";
 export function ItemSheet({
   item,
   onClose,
+  onAdd,
 }: {
   item: MenuItem;
   onClose: () => void;
+  // Optional: where to add the line. Defaults to the single-café cart; the
+  // food-court flow passes its own (fcStore) adder. Single-café = unchanged.
+  onAdd?: (line: NewLine) => void;
 }) {
-  const addLine = useCart((s) => s.addLine);
+  const cartAdd = useCart((s) => s.addLine);
+  const addLine = onAdd ?? cartAdd;
   const [variant, setVariant] = React.useState<MenuVariant | null>(
     item.variants[0] ?? null,
   );
