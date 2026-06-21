@@ -10,6 +10,7 @@ import { useFcCart, fcCartKey, fcLines, fcSubtotal } from "@/lib/cart/fcStore";
 import {
   getSeatSession,
   setFcOrder,
+  addCourtOrder,
 } from "@/lib/customer/fcSession";
 import type { FcStoreResolve } from "@/lib/customer/fcTypes";
 import { Button } from "@/components/ui/Button";
@@ -92,6 +93,12 @@ export function FcCartScreen({
         return;
       }
       setFcOrder(token, storeSlug, { orderId: activeOrder.id, sessionToken: seat ?? "" });
+      addCourtOrder(token, {
+        slug: storeSlug,
+        name: store?.restaurant.name ?? storeSlug,
+        orderId: activeOrder.id,
+        sessionToken: seat ?? "",
+      });
     } else {
       const { data, error: e } = await supabase.rpc("place_food_court_order", {
         p_token: token,
@@ -107,6 +114,12 @@ export function FcCartScreen({
       }
       const res = data as { order_id: string; session_token: string };
       setFcOrder(token, storeSlug, {
+        orderId: res.order_id,
+        sessionToken: res.session_token,
+      });
+      addCourtOrder(token, {
+        slug: storeSlug,
+        name: store?.restaurant.name ?? storeSlug,
         orderId: res.order_id,
         sessionToken: res.session_token,
       });

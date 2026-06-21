@@ -11,8 +11,18 @@
  */
 const seatKey = (token: string) => `sd-fcseat-${token}`;
 const orderKey = (token: string, slug: string) => `sd-fcorder-${token}-${slug}`;
+const courtKey = (token: string) => `sd-fccourt-${token}`;
 
 export interface FcOrderPtr {
+  orderId: string;
+  sessionToken: string;
+}
+
+/** One entry per order the customer placed anywhere in this court (for the
+ *  cross-store "your orders" overview). */
+export interface CourtOrderPtr {
+  slug: string;
+  name: string;
   orderId: string;
   sessionToken: string;
 }
@@ -73,4 +83,20 @@ export function setFcOrder(token: string, slug: string, ptr: FcOrderPtr): void {
 }
 export function clearFcOrder(token: string, slug: string): void {
   remove(orderKey(token, slug));
+}
+
+// ---- court-wide order index (cross-store overview) --------------------------
+export function getCourtOrders(token: string): CourtOrderPtr[] {
+  return read<CourtOrderPtr[]>(courtKey(token)) ?? [];
+}
+export function addCourtOrder(token: string, ptr: CourtOrderPtr): void {
+  const list = getCourtOrders(token).filter((o) => o.orderId !== ptr.orderId);
+  list.push(ptr);
+  write(courtKey(token), list);
+}
+export function removeCourtOrder(token: string, orderId: string): void {
+  write(
+    courtKey(token),
+    getCourtOrders(token).filter((o) => o.orderId !== orderId),
+  );
 }

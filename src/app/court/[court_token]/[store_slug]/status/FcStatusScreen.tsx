@@ -6,7 +6,7 @@ import { Loader2, Check, ReceiptText, Store, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
 import { formatINR } from "@/lib/format";
-import { getFcOrder, clearFcOrder } from "@/lib/customer/fcSession";
+import { getFcOrder, clearFcOrder, removeCourtOrder } from "@/lib/customer/fcSession";
 import { ORDER_STATUS_META, statusIndex, type OrderStatus } from "@/lib/orderStatus";
 import type { FcStoreResolve, FcActiveOrder } from "@/lib/customer/fcTypes";
 import { Button } from "@/components/ui/Button";
@@ -56,8 +56,9 @@ export function FcStatusScreen({
     if (d?.restaurant?.name) setStoreName(d.restaurant.name);
     if (d?.active_order) setOrder(d.active_order);
     else {
-      // order cleared (or none) → drop the pointer so a stale token can't reattach
+      // order cleared (or none) → drop the pointers so a stale token can't reattach
       clearFcOrder(token, storeSlug);
+      if (ptr) removeCourtOrder(token, ptr.orderId);
       setCleared(true);
     }
     setLoading(false);
@@ -261,12 +262,20 @@ export function FcStatusScreen({
           )
         )}
 
-        <Link
-          href={`/court/${token}`}
-          className="mt-4 flex items-center justify-center gap-1.5 text-sm font-semibold text-brand-600"
-        >
-          <Store className="size-4" /> Order from another store
-        </Link>
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <Link
+            href={`/court/${token}/orders`}
+            className="flex items-center justify-center gap-1.5 text-sm font-semibold text-brand-600"
+          >
+            <ReceiptText className="size-4" /> View all your orders
+          </Link>
+          <Link
+            href={`/court/${token}`}
+            className="flex items-center justify-center gap-1.5 text-sm font-medium text-muted"
+          >
+            <Store className="size-4" /> Order from another store
+          </Link>
+        </div>
       </div>
     </div>
   );

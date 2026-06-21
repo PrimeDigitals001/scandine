@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { FcResolve } from "@/lib/customer/fcTypes";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SeatJoin } from "./SeatJoin";
+import { YourOrdersLink } from "./YourOrdersLink";
 
 const GRADIENTS = [
   "from-brand-100 to-brand-200",
@@ -67,6 +68,7 @@ export default async function CourtPage({
       </header>
 
       <div className="mx-auto max-w-5xl px-4 py-5 md:px-6">
+        <YourOrdersLink token={court_token} />
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
           {fc.stores.length} {fc.stores.length === 1 ? "store" : "stores"}
         </h2>
