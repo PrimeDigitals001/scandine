@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { QrCode, Lock, Loader2 } from "lucide-react";
+import { QrCode, Lock, Loader2, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { ResolveResult } from "@/lib/customer/types";
-import { getSessionToken, setSessionToken } from "@/lib/customer/session";
+import { getSessionToken, setSessionToken, clearSessionToken } from "@/lib/customer/session";
 import { AskToJoin } from "@/components/customer/AskToJoin";
 import { MenuScreen } from "./MenuScreen";
 
@@ -14,6 +14,7 @@ type State =
   | { status: "loading" }
   | { status: "error" }
   | { status: "locked"; name: string; table: string }
+  | { status: "ended" }
   | { status: "ready"; data: ResolveResult; session: string };
 
 export function MenuLoader({
@@ -39,6 +40,13 @@ export function MenuLoader({
       if (cancelled) return;
       if (error || !data) {
         setState({ status: "error" });
+        return;
+      }
+      if (data.ended) {
+        // the visit ended (table cleared / session expired) — drop the stale
+        // token so a fresh scan starts clean, and tell them to scan again.
+        clearSessionToken(token);
+        setState({ status: "ended" });
         return;
       }
       if (data.locked) {
@@ -73,6 +81,31 @@ export function MenuLoader({
           title="This QR code isn't active"
           description="It may be old or the table was just cleared. Please ask the staff for a fresh code for your table."
         />
+      </div>
+    );
+  }
+
+  if (state.status === "ended") {
+    return (
+      <div className="flex min-h-dvh items-center justify-center px-6">
+        <div className="flex max-w-xs flex-col items-center text-center">
+          <span className="mb-4 grid size-16 place-items-center rounded-full bg-success-soft text-success-strong">
+            <CheckCircle2 className="size-7" />
+          </span>
+          <h1 className="text-xl font-bold tracking-tight text-ink">
+            This visit has ended
+          </h1>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted">
+            The table has been cleared. Scan the QR code again to start a new
+            order.
+          </p>
+          <a
+            href={`/order/${token}`}
+            className="mt-5 text-sm font-semibold text-brand-600"
+          >
+            Start a new order
+          </a>
+        </div>
       </div>
     );
   }

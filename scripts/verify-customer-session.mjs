@@ -74,6 +74,13 @@ try {
   await admin.from("orders").update({ status: "cleared" }).eq("id", orderId);
   await admin.from("tables").update({ status: "empty", session_token: null, session_started_at: null }).eq("id", t0.id);
 
+  // 6b. a lingering phone (old token) after clear must see "ended" and NOT
+  //     re-claim the freed table (the ghost-session fix).
+  const endedRes = await resolve(S1);
+  ok("after clear, a lingering phone sees 'ended'", endedRes.data?.ended === true);
+  const { data: ghostRow } = await admin.from("tables").select("session_token").eq("id", t0.id).single();
+  ok("…and the freed table stays free (no ghost re-claim)", ghostRow?.session_token === null);
+
   // a new guest claims a fresh session + orders
   const r3 = await resolve(null);
   const S2 = r3.data?.session_token;

@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Loader2, Lock, QrCode } from "lucide-react";
+import { Loader2, Lock, QrCode, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { getSeatSession, setSeatSession } from "@/lib/customer/fcSession";
+import { getSeatSession, setSeatSession, clearSeatSession } from "@/lib/customer/fcSession";
 import type { FcStoreResolve } from "@/lib/customer/fcTypes";
 import { AskToJoin } from "@/components/customer/AskToJoin";
 import { FcMenuScreen } from "./FcMenuScreen";
@@ -13,6 +13,7 @@ type State =
   | { status: "loading" }
   | { status: "error" }
   | { status: "locked"; store?: string; label?: string }
+  | { status: "ended" }
   | { status: "ready"; data: FcStoreResolve };
 
 export function FcMenuLoader({
@@ -40,6 +41,11 @@ export function FcMenuLoader({
         return;
       }
       const d = data as FcStoreResolve;
+      if (d.ended) {
+        clearSeatSession(token);
+        setState({ status: "ended" });
+        return;
+      }
       if (d.locked) {
         setState({ status: "locked", store: d.restaurant?.name, label: d.access?.label });
         return;
@@ -52,6 +58,23 @@ export function FcMenuLoader({
       cancelled = true;
     };
   }, [token, storeSlug]);
+
+  if (state.status === "ended") {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+        <span className="mb-4 grid size-16 place-items-center rounded-full bg-success-soft text-success-strong">
+          <CheckCircle2 className="size-7" />
+        </span>
+        <h1 className="text-xl font-bold tracking-tight text-ink">This visit has ended</h1>
+        <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-muted">
+          The table has been cleared. Scan the QR code again to start a new order.
+        </p>
+        <Link href={`/court/${token}`} className="mt-5 text-sm font-semibold text-brand-600">
+          Back to stores
+        </Link>
+      </div>
+    );
+  }
 
   if (state.status === "loading") {
     return (

@@ -68,6 +68,7 @@ export interface ActiveOrder {
 }
 export interface ResolveResult {
   locked?: boolean;
+  ended?: boolean;
   session_token?: string;
   restaurant: CustomerRestaurant;
   table: CustomerTable;

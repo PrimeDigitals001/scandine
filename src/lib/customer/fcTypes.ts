@@ -25,6 +25,7 @@ export interface FcActiveOrder extends ActiveOrder {
 /** resolve_food_court_store(token, slug, session?) → one store's menu + order */
 export interface FcStoreResolve {
   locked?: boolean;
+  ended?: boolean;
   mode: FcMode;
   session_token?: string | null;
   pickup_number?: number | null;

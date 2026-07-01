@@ -53,7 +53,7 @@ export default async function CartPage({
   }
 
   const d = data as ResolveResult;
-  if (d.locked) return goToMenu;
+  if (d.locked || d.ended) return goToMenu;
 
   return (
     <CartScreen

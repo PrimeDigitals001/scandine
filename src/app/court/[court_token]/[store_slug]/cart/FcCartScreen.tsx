@@ -48,8 +48,9 @@ export function FcCartScreen({
         p_store_slug: storeSlug,
         p_session_token: getSeatSession(token),
       });
-      if (!cancelled && data && !(data as FcStoreResolve).locked) {
-        setStore(data as FcStoreResolve);
+      const d = data as FcStoreResolve | null;
+      if (!cancelled && d && !d.locked && !d.ended) {
+        setStore(d);
       }
     })();
     return () => {
