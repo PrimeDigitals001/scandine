@@ -138,3 +138,18 @@ export async function deleteCourtTable(formData: FormData): Promise<void> {
   await createAdminClient().from("food_court_tables").delete().eq("id", id);
   revalidatePath(`/superadmin/food-courts/${courtId}`);
 }
+
+// Reset a stuck shared seat: wipe its session so the next party starts fresh
+// (the "Free table" equivalent for food-court seats). Drops any join requests.
+export async function freeCourtSeatAction(formData: FormData): Promise<void> {
+  await requireSuperAdmin();
+  const courtId = String(formData.get("court_id"));
+  const seatId = String(formData.get("seat_id"));
+  const admin = createAdminClient();
+  await admin
+    .from("food_court_tables")
+    .update({ session_token: null, session_started_at: null })
+    .eq("id", seatId);
+  await admin.from("join_requests").delete().eq("food_court_table_id", seatId);
+  revalidatePath(`/superadmin/food-courts/${courtId}`);
+}

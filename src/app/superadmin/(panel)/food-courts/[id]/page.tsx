@@ -16,6 +16,7 @@ import {
   detachStoreFromCourt,
   toggleFoodCourtActive,
   deleteCourtTable,
+  freeCourtSeatAction,
 } from "@/lib/superadmin/fcActions";
 import { Card } from "@/components/ui/Card";
 import { Button, buttonVariants } from "@/components/ui/Button";
@@ -200,6 +201,17 @@ export default async function FoodCourtDetailPage({
                 >
                   <Download className="size-4" />
                 </a>
+                <form action={freeCourtSeatAction}>
+                  <input type="hidden" name="court_id" value={court.id} />
+                  <input type="hidden" name="seat_id" value={t.id} />
+                  <button
+                    type="submit"
+                    className="rounded-control border border-hairline px-2 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-canvas active:scale-95"
+                    title="Wipe the seat's session so the next party starts fresh"
+                  >
+                    Reset
+                  </button>
+                </form>
                 <form action={deleteCourtTable}>
                   <input type="hidden" name="court_id" value={court.id} />
                   <input type="hidden" name="table_id" value={t.id} />

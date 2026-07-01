@@ -11,6 +11,39 @@ interface Req {
   name: string;
 }
 
+// Best-effort attention: a short beep (Web Audio) + a phone vibration. Both are
+// gated by browser autoplay/gesture policies, so the visual prompt stays the
+// reliable channel — this just helps the table-holder notice.
+function alertJoin() {
+  try {
+    navigator.vibrate?.([180, 90, 180]);
+  } catch {
+    /* unsupported (e.g. iOS) — ignore */
+  }
+  try {
+    const Ctx =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!Ctx) return;
+    const ac = new Ctx();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.001, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.3, ac.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.35);
+    osc.start();
+    osc.stop(ac.currentTime + 0.36);
+    osc.onended = () => ac.close();
+  } catch {
+    /* audio blocked without a gesture — ignore */
+  }
+}
+
 export function JoinRequestsWatcher({
   token,
   sessionToken,
@@ -21,6 +54,7 @@ export function JoinRequestsWatcher({
   const supabase = React.useMemo(() => createClient(), []);
   const [requests, setRequests] = React.useState<Req[]>([]);
   const [busy, setBusy] = React.useState<string | null>(null);
+  const seen = React.useRef<Set<string>>(new Set());
 
   React.useEffect(() => {
     let alive = true;
@@ -29,7 +63,13 @@ export function JoinRequestsWatcher({
         p_token: token,
         p_session_token: sessionToken,
       });
-      if (alive && Array.isArray(data)) setRequests(data as Req[]);
+      if (!alive || !Array.isArray(data)) return;
+      const list = data as Req[];
+      // alert (beep + vibrate) when a NEW request id shows up
+      const fresh = list.some((r) => !seen.current.has(r.id));
+      if (fresh) alertJoin();
+      seen.current = new Set(list.map((r) => r.id));
+      setRequests(list);
     };
     const iv = setInterval(tick, 4000);
     void tick();

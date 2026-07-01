@@ -463,6 +463,9 @@ export async function freeTableAction(formData: FormData): Promise<void> {
     .from("tables")
     .update({ session_token: null, session_started_at: null })
     .eq("id", tableId);
+  // drop any pending "ask to join" requests for the freed table (service role:
+  // join_requests is RLS default-deny)
+  await createAdminClient().from("join_requests").delete().eq("table_id", tableId);
   revalidatePath("/admin/dashboard");
 }
 

@@ -470,6 +470,7 @@ Founder reviewed and flagged a batch of polish + two real gaps:
 - **Client:** shared `AskToJoin` (requester: name + "Ask to join" → polls `claim_join` every 2s, ~90s timeout; on approval calls `onJoined(session)`) on both locked screens (`MenuLoader`/`FcMenuLoader` → store the session + reload). Shared `JoinRequestsWatcher` (holder: polls `list_join_requests` every 4s, shows Accept/Decline toast) mounted on `MenuScreen` (when sessionToken) + `FcMenuScreen` (shared_table + session_token).
 - **⚠️ Honest limitation:** web app = no push notifications, so the Accept prompt only appears while the holder still has ScanDine open (they usually do — just ordered). If they've closed the tab, the request times out → fall back to the share link.
 - **Verified:** `verify-join.mjs` **12/12** (both surfaces: ask→pending→approve→same session→can order; decline→denied; non-holder can't list). Regressions: session 12/12, shared 11/11. Build + lint green.
+- **Follow-up (stuck-table / notification handling, no migration):** join prompt now **beeps + vibrates** on a new request (`alertJoin` in `JoinRequestsWatcher`, best-effort per autoplay/gesture policy; visual stays reliable). `freeTableAction` now also deletes that table's pending join_requests. Added super-admin **"Reset"** on each food-court shared seat (`freeCourtSeatAction`) — the "Free table" equivalent for seats. Layered stuck-table handling: (1) **45-min auto-expiry** of an abandoned claim, (2) single-café Floor **"Free table"**, (3) super-admin **"Reset seat"** for courts.
 
 ---
 
