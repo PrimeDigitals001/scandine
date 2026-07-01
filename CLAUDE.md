@@ -475,11 +475,12 @@ Founder reviewed and flagged a batch of polish + two real gaps:
 
 ---
 
-### Session 18 — Clean session-end on clear + ghost re-claim fix ⏳ migration pending
+### Session 18 — Clean session-end on clear + ghost re-claim fix ✅ APPLIED + verified
 - **Founder ask:** on table **clear/paid**, the shared session should end for **all** phones (rescan to see again).
 - **Found a latent bug:** `resolve_*` always claimed a fresh session for a free table, so a lingering phone's post-clear resolve **re-claimed** the freed table → ghost session that could lock the next guest.
 - **Fix (migration 011 `…20260622120000_session_end.sql`):** re-emits `resolve_table` + `resolve_food_court_store` so that **if a caller presents a session token but the table/seat has no live session (cleared or 45-min expiry), it returns `{ended:true}` and does NOT claim.** Only a brand-new scan (null token) claims. Preserves all 009 fields.
 - **Client:** `ResolveResult`/`FcStoreResolve` gain `ended?`; `MenuLoader`/`FcMenuLoader` show a "This visit has ended — scan again" screen + clear the local token; `StatusScreen`/`FcStatusScreen` already route no-active-order → cleared (and now resolve won't re-claim); `cart/page` treats ended like locked; `FcCartScreen` guards it. `verify-customer-session.mjs` gains a "lingering phone sees ended + table stays free" assertion.
-- **⚠️ REVERSE deploy order:** the new client is backward-compatible with the OLD db (never sees `ended`), but OLD cached clients would choke on an `ended` payload → **push/deploy the code FIRST, then apply the migration.** Build + lint green pre-apply.
+- **⚠️ REVERSE deploy order:** the new client is backward-compatible with the OLD db (never sees `ended`), but OLD cached clients would choke on an `ended` payload → **pushed/deployed the code FIRST, then applied the migration.**
+- **Verified (migration applied):** session **14/14** (incl. "lingering phone sees ended, table stays free"), pickup 17/17, shared 11/11, join 14/14, engagement 9/9. Build + lint green. (Note: the demo admin password had drifted again → reset to `admin123` via service role; recurring data issue, not code.)
 
 *End of CLAUDE.md — ScanDine. Vision: CONTEXT.md. This file: how we build it.*
