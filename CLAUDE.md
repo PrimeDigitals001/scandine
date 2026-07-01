@@ -464,6 +464,13 @@ Founder reviewed and flagged a batch of polish + two real gaps:
 - **Test-robustness fixes:** food-court test cleanups now delete the court's orders by `food_court_id` (not just tracked ids) and tests/seed pick only restaurants that HAVE a menu (the founder's empty "test" café was breaking generic store selection).
 - **⚠️ Deferred minor schema bug (not UI-reachable):** `orders.food_court_id` FK is `on delete set null`, so deleting a `food_courts` row with orders nulls food_court_id → violates `orders_anchor_chk`. No "delete court" UI exists (only suspend), so not reachable in-app; if a delete-court feature is added, first change that FK to `on delete cascade` (or delete the court's orders first).
 
+### Session 17 — "Ask to join" a table/seat (approve-based join) ✅
+- **Idea (founder):** alongside the "Invite table" share link, a person who scans an **in-use** table/seat should be able to **request to join**, and the person holding the table gets a prompt to **Accept/Decline**. Works for single-café tables AND food-court shared seats.
+- **Migration 010 `…20260620120000_join_requests.sql` (APPLIED):** new `join_requests` table (nullable `table_id` XOR `food_court_table_id`, `request_token` = requester's private ticket, `requester_name`, `status`, anchor check) + 4 SECURITY DEFINER RPCs: `request_to_join`, `list_join_requests` (holder-only, `_check_session`/`_check_fc_session`), `respond_join_request`, `claim_join`. Additive — no existing objects changed. **Security:** RLS default-deny (no policies); the session token is handed to the requester ONLY after approval, via `claim_join` validating their private `request_token` — never stored in a readable row. Delivery is **polling** (no realtime), so no secrets leak through anon table reads.
+- **Client:** shared `AskToJoin` (requester: name + "Ask to join" → polls `claim_join` every 2s, ~90s timeout; on approval calls `onJoined(session)`) on both locked screens (`MenuLoader`/`FcMenuLoader` → store the session + reload). Shared `JoinRequestsWatcher` (holder: polls `list_join_requests` every 4s, shows Accept/Decline toast) mounted on `MenuScreen` (when sessionToken) + `FcMenuScreen` (shared_table + session_token).
+- **⚠️ Honest limitation:** web app = no push notifications, so the Accept prompt only appears while the holder still has ScanDine open (they usually do — just ordered). If they've closed the tab, the request times out → fall back to the share link.
+- **Verified:** `verify-join.mjs` **12/12** (both surfaces: ask→pending→approve→same session→can order; decline→denied; non-holder can't list). Regressions: session 12/12, shared 11/11. Build + lint green.
+
 ---
 
 *End of CLAUDE.md — ScanDine. Vision: CONTEXT.md. This file: how we build it.*

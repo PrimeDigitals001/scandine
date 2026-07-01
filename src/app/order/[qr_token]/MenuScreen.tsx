@@ -20,6 +20,7 @@ import { buttonVariants } from "@/components/ui/Button";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { ItemSheet } from "./ItemSheet";
 import { DishThumb, DishBadges, RatingPill } from "@/components/ui/DishExtras";
+import { JoinRequestsWatcher } from "@/components/customer/JoinRequestsWatcher";
 
 const hasOptions = (item: MenuItem) =>
   item.variants.length > 0 || item.addons.length > 0;
@@ -68,6 +69,9 @@ export function MenuScreen({
         hydrated && count > 0 && "max-lg:pb-36",
       )}
     >
+      {sessionToken && (
+        <JoinRequestsWatcher token={token} sessionToken={sessionToken} />
+      )}
       {/* Header */}
       <header className="bg-brand-500 px-4 pb-5 pt-6 text-white md:px-6 lg:px-8">
         <div className="flex items-start justify-between gap-3">

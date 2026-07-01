@@ -23,6 +23,7 @@ import { StatusChip } from "@/components/ui/StatusChip";
 import { buttonVariants } from "@/components/ui/Button";
 import { ItemSheet } from "@/app/order/[qr_token]/ItemSheet";
 import { DishThumb, DishBadges, RatingPill } from "@/components/ui/DishExtras";
+import { JoinRequestsWatcher } from "@/components/customer/JoinRequestsWatcher";
 
 const hasOptions = (it: MenuItem) => it.variants.length > 0 || it.addons.length > 0;
 
@@ -63,6 +64,9 @@ export function FcMenuScreen({
         hydrated && count > 0 && "max-lg:pb-28",
       )}
     >
+      {data.mode === "shared_table" && data.session_token && (
+        <JoinRequestsWatcher token={token} sessionToken={data.session_token} />
+      )}
       {/* header (full-bleed; content centered) */}
       <header className="bg-brand-500 px-4 pb-5 pt-6 text-white md:px-6">
         <div className="mx-auto flex max-w-6xl items-start justify-between gap-3">

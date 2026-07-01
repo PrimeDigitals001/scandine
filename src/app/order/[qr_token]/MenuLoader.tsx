@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { ResolveResult } from "@/lib/customer/types";
 import { getSessionToken, setSessionToken } from "@/lib/customer/session";
+import { AskToJoin } from "@/components/customer/AskToJoin";
 import { MenuScreen } from "./MenuScreen";
 
 type State =
@@ -87,13 +88,19 @@ export function MenuLoader({
             Table {state.table} is in use
           </h1>
           <p className="mt-1.5 text-sm leading-relaxed text-muted">
-            Someone at this table already has an order open. If you&apos;re with
-            them, ask them to share their order link with you. Otherwise, please
-            wait until the table is cleared.
+            Someone at this table already has an order open. Ask to join and
+            they can let you in from their phone.
           </p>
+          <AskToJoin
+            token={token}
+            onJoined={(s) => {
+              setSessionToken(token, s);
+              window.location.href = `/order/${token}`;
+            }}
+          />
           <Link
             href={`/order/${token}`}
-            className="mt-5 text-sm font-semibold text-brand-600"
+            className="mt-4 text-sm font-semibold text-brand-600"
           >
             Try again
           </Link>

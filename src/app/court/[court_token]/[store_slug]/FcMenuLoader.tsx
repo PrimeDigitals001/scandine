@@ -6,6 +6,7 @@ import { Loader2, Lock, QrCode } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getSeatSession, setSeatSession } from "@/lib/customer/fcSession";
 import type { FcStoreResolve } from "@/lib/customer/fcTypes";
+import { AskToJoin } from "@/components/customer/AskToJoin";
 import { FcMenuScreen } from "./FcMenuScreen";
 
 type State =
@@ -87,11 +88,17 @@ export function FcMenuLoader({
           {state.label ?? "This table"} is in use
         </h1>
         <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-muted">
-          Someone at this table already has an order open. If you&apos;re with
-          them, ask them to share their order link. Otherwise please wait until
-          it&apos;s cleared.
+          Someone at this table already has an order open. Ask to join and they
+          can let you in from their phone.
         </p>
-        <Link href={`/court/${token}`} className="mt-5 text-sm font-semibold text-brand-600">
+        <AskToJoin
+          token={token}
+          onJoined={(s) => {
+            setSeatSession(token, s);
+            window.location.href = `/court/${token}/${storeSlug}`;
+          }}
+        />
+        <Link href={`/court/${token}`} className="mt-4 text-sm font-semibold text-brand-600">
           Back to stores
         </Link>
       </div>
