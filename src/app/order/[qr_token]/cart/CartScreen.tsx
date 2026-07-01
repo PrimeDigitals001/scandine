@@ -58,19 +58,33 @@ export function CartScreen({
     }));
 
     const session = getSessionToken(token);
-    const res = adding
-      ? await supabase.rpc("add_items_to_order", {
-          p_qr_token: token,
-          p_order_id: activeOrder!.id,
-          p_items: items,
-          p_session_token: session,
-        })
+    const addTo = (orderId: string) =>
+      supabase.rpc("add_items_to_order", {
+        p_qr_token: token,
+        p_order_id: orderId,
+        p_items: items,
+        p_session_token: session,
+      });
+
+    let res = adding
+      ? await addTo(activeOrder!.id)
       : await supabase.rpc("place_order", {
           p_qr_token: token,
           p_items: items,
           p_table_note: tableNote.trim() || null,
           p_session_token: session,
         });
+
+    // Race: someone else at the table placed the first order between page load
+    // and now → "table already has an active order". Fall back to adding to it,
+    // so a second person's order is never lost.
+    const conflict =
+      res.error && (res.error.code === "23505" || /already has an active order/i.test(res.error.message));
+    if (!adding && conflict) {
+      const r = await supabase.rpc("resolve_table", { p_qr_token: token, p_session_token: session });
+      const existingId = (r.data as { active_order?: { id?: string } } | null)?.active_order?.id;
+      if (existingId) res = await addTo(existingId);
+    }
 
     if (res.error) {
       setError(res.error.message || "Something went wrong. Please try again.");

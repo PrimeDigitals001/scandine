@@ -63,6 +63,13 @@ try {
   const placed = await anon.rpc("place_order", { p_qr_token: "demo", p_items: [{ menu_item_id: item.id, quantity: 1 }], p_session_token: poll2.data.session_token });
   ok("[café] joined requester can order on the shared session", !placed.error && !!placed.data, placed.error?.message ?? "");
 
+  // RACE + FALLBACK: a second place_order (order already exists) is rejected,
+  // but adding to the existing order works — this is what the cart falls back to.
+  const race = await anon.rpc("place_order", { p_qr_token: "demo", p_items: [{ menu_item_id: item.id, quantity: 1 }], p_session_token: sessA });
+  ok("[café] a 2nd simultaneous place_order is rejected (the race)", !!race.error && (race.error.code === "23505" || /active order/i.test(race.error.message)));
+  const addBack = await anon.rpc("add_items_to_order", { p_qr_token: "demo", p_order_id: placed.data, p_items: [{ menu_item_id: item.id, quantity: 1 }], p_session_token: sessA });
+  ok("[café] …and the 2nd person's items add to the shared order (fallback)", !addBack.error, addBack.error?.message ?? "");
+
   // decline path
   const reqC = "reqtok-" + Math.random().toString(36).slice(2);
   await anon.rpc("request_to_join", { p_token: "demo", p_request_token: reqC, p_name: "Eve" });

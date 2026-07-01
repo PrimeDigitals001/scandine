@@ -81,6 +81,9 @@ export function FcCartScreen({
     }));
     const seat = getSeatSession(token);
 
+    let finalOrderId: string | null = null;
+    let finalSession = seat ?? "";
+
     if (canAddTo && activeOrder) {
       const { error: e } = await supabase.rpc("add_items_to_fc_order", {
         p_order_id: activeOrder.id,
@@ -92,13 +95,7 @@ export function FcCartScreen({
         setSubmitting(false);
         return;
       }
-      setFcOrder(token, storeSlug, { orderId: activeOrder.id, sessionToken: seat ?? "" });
-      addCourtOrder(token, {
-        slug: storeSlug,
-        name: store?.restaurant.name ?? storeSlug,
-        orderId: activeOrder.id,
-        sessionToken: seat ?? "",
-      });
+      finalOrderId = activeOrder.id;
     } else {
       const { data, error: e } = await supabase.rpc("place_food_court_order", {
         p_token: token,
@@ -107,23 +104,44 @@ export function FcCartScreen({
         p_table_note: note.trim() || null,
         p_session_token: seat,
       });
-      if (e || !data) {
+      const conflict =
+        e && (e.code === "23505" || /already have an active order/i.test(e.message ?? ""));
+      if (conflict) {
+        // Race on a shared seat: another phone created this store's order first
+        // → add to it instead of failing, so the order is never lost.
+        const { data: r } = await supabase.rpc("resolve_food_court_store", {
+          p_token: token,
+          p_store_slug: storeSlug,
+          p_session_token: seat,
+        });
+        const existingId = (r as { active_order?: { id?: string } } | null)?.active_order?.id;
+        if (existingId) {
+          const { error: ae } = await supabase.rpc("add_items_to_fc_order", {
+            p_order_id: existingId,
+            p_items: items,
+            p_session_token: seat,
+          });
+          if (!ae) finalOrderId = existingId;
+        }
+      } else if (!e && data) {
+        const res = data as { order_id: string; session_token: string };
+        finalOrderId = res.order_id;
+        finalSession = res.session_token;
+      }
+      if (!finalOrderId) {
         setError(e?.message || "Something went wrong.");
         setSubmitting(false);
         return;
       }
-      const res = data as { order_id: string; session_token: string };
-      setFcOrder(token, storeSlug, {
-        orderId: res.order_id,
-        sessionToken: res.session_token,
-      });
-      addCourtOrder(token, {
-        slug: storeSlug,
-        name: store?.restaurant.name ?? storeSlug,
-        orderId: res.order_id,
-        sessionToken: res.session_token,
-      });
     }
+
+    setFcOrder(token, storeSlug, { orderId: finalOrderId, sessionToken: finalSession });
+    addCourtOrder(token, {
+      slug: storeSlug,
+      name: store?.restaurant.name ?? storeSlug,
+      orderId: finalOrderId,
+      sessionToken: finalSession,
+    });
     clear(cartKey);
     router.replace(`/court/${token}/${storeSlug}/status`);
   }
